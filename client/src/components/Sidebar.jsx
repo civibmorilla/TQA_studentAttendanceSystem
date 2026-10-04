@@ -1,23 +1,26 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-export default function Sidebar({ activeRole = 'STUDENT', activeTab = 'Dashboard', setActiveTab }) {
-  // Define role-specific navigation menu items
+export default function Sidebar({ activeRole = 'STUDENT', activeTab = 'Dashboard' }) {
+  const navigate = useNavigate();
+
+  // Added specific route 'path' variables to each navigation item
   const menuConfig = {
     STUDENT: [
-      { id: 'Dashboard', label: 'Dashboard', icon: '🏠' },
-      { id: 'Profile', label: 'Profile', icon: '👤' },
-      { id: 'Subjects', label: 'Subjects', icon: '📖' },
-      { id: 'Attendance', label: 'Attendance', icon: '📅' },
+      { id: 'Dashboard', label: 'Dashboard', icon: '🏠', path: '/student/dashboard' },
+      { id: 'Profile', label: 'Profile', icon: '👤', path: '/student/profile' },
+      { id: 'Subjects', label: 'Subjects', icon: '📖', path: '/student/subjects' },
+      { id: 'Attendance', label: 'Attendance', icon: '📅', path: '/student/attendance' },
     ],
     INSTRUCTOR: [
-      { id: 'Dashboard', label: 'Dashboard', icon: '🏠' },
-      { id: 'Attendance', label: 'Attendance', icon: '📅' },
-      { id: 'Profile', label: 'Profile', icon: '👤' },
+      { id: 'Dashboard', label: 'Dashboard', icon: '🏠', path: '/instructor/dashboard' },
+      { id: 'Attendance', label: 'Attendance', icon: '📅', path: '/instructor/attendance' },
+      { id: 'Profile', label: 'Profile', icon: '👤', path: '/instructor/profile' },
     ],
     ADMIN: [
-      { id: 'Dashboard', label: 'Dashboard', icon: '🏠' },
-      { id: 'Programs', label: 'Programs', icon: '📚' },
-      { id: 'Accounts', label: 'Accounts', icon: '👥' },
+      { id: 'Dashboard', label: 'Dashboard', icon: '🏠', path: '/admin/dashboard' },
+      { id: 'Programs', label: 'Programs', icon: '📚', path: '/admin/programs' },
+      { id: 'Accounts', label: 'Accounts', icon: '👥', path: '/admin/accounts' },
     ]
   };
 
@@ -45,7 +48,8 @@ export default function Sidebar({ activeRole = 'STUDENT', activeTab = 'Dashboard
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab && setActiveTab(item.id)}
+                // Triggers React Router to change the page URL without reloading
+                onClick={() => navigate(item.path)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition-all ${
                   isActive
                     ? 'bg-blue-50 text-blue-600 font-bold shadow-sm'

@@ -1,66 +1,50 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function InstructorDashboard() {
-  const [roster, setRoster] = useState([
-    { id: '1', name: 'Juan Dela Cruz', studentId: '1234-0000', status: 'PRESENT' },
-    { id: '2', name: 'Adrian Santos', studentId: '1234-0001', status: 'PRESENT' },
-    { id: '3', name: 'Carlos Mendoza', studentId: '1234-0002', status: 'LATE' },
-    { id: '4', name: 'Maria Garcia', studentId: '1234-0003', status: 'ABSENT' },
-  ]);
+  const navigate = useNavigate();
 
-  const handleToggle = (id, newStatus) => {
-    setRoster(prev => prev.map(item => item.id === id ? { ...item, status: newStatus } : item));
-  };
+  const assignedClasses = [
+    { code: 'MATH-301', title: 'Calculus', section: 'BSCpE-101', schedule: 'Mon/Wed • 8:30 AM - 10:00 AM', room: 'Room 402' },
+    { code: 'MATH-302', title: 'Advanced Math', section: 'BSIT-201', schedule: 'Tue/Thu • 10:30 AM - 12:00 PM', room: 'Room 405' },
+    { code: 'CPE-401', title: 'Embedded Systems', section: 'BSCpE-301', schedule: 'Wed/Fri • 1:30 PM - 3:30 PM', room: 'Lab A' },
+  ];
 
   return (
     <div className="p-8 bg-slate-50 min-h-screen">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Daily Attendance Sheet</h1>
-        <button className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-sm">
-          📷 Scan Student Barcode / QR ID
-        </button>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Instructor Dashboard</h1>
+          <p className="text-xs text-slate-500 mt-1">Welcome back, Prof. Juan Dela Cruz. Here are your assigned classes.</p>
+        </div>
+        <span className="text-xs text-slate-500 font-medium">
+          Term: <strong className="text-blue-600">1st Sem, 2026</strong>
+        </span>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-        <h2 className="text-sm font-bold text-slate-800 mb-4">Student Roster Attendance Entry</h2>
-        <table className="w-full text-left">
-          <thead>
-            <tr className="bg-slate-50 text-[11px] font-bold text-slate-400 uppercase border-b border-slate-100">
-              <th className="py-3 px-4">#</th>
-              <th className="py-3 px-4">Student Name</th>
-              <th className="py-3 px-4">Student ID</th>
-              <th className="py-3 px-4 text-center">Status Toggle</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 text-xs">
-            {roster.map((row, idx) => (
-              <tr key={row.id}>
-                <td className="py-3.5 px-4 text-slate-400">{idx + 1}</td>
-                <td className="py-3.5 px-4 font-bold text-slate-800">{row.name}</td>
-                <td className="py-3.5 px-4 text-slate-500">{row.studentId}</td>
-                <td className="py-3.5 px-4">
-                  <div className="flex justify-center gap-2 bg-slate-100 p-1.5 rounded-xl w-max mx-auto">
-                    {[
-                      { key: 'PRESENT', label: 'P', style: 'bg-emerald-500 text-white' },
-                      { key: 'LATE', label: 'L', style: 'bg-amber-400 text-white' },
-                      { key: 'ABSENT', label: 'A', style: 'bg-rose-500 text-white' }
-                    ].map(btn => (
-                      <button
-                        key={btn.key}
-                        onClick={() => handleToggle(row.id, btn.key)}
-                        className={`w-9 h-8 rounded-lg font-bold text-xs transition ${
-                          row.status === btn.key ? btn.style : 'text-slate-400 hover:text-slate-600'
-                        }`}
-                      >
-                        {btn.label}
-                      </button>
-                    ))}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <h2 className="text-sm font-bold text-slate-800 mb-4">My Schedule & Classes</h2>
+      <div className="grid grid-cols-2 gap-6">
+        {assignedClasses.map((cls, idx) => (
+          <div key={idx} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">{cls.code}</span>
+                <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-[10px] font-bold">{cls.section}</span>
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-4">{cls.title}</h3>
+              <div className="space-y-1.5 text-xs text-slate-500 mb-6">
+                <p><strong className="text-slate-700 font-semibold">Schedule:</strong> {cls.schedule}</p>
+                <p><strong className="text-slate-700 font-semibold">Room:</strong> {cls.room}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/instructor/attendance')}
+              className="w-full py-2.5 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white font-semibold text-xs rounded-xl text-center transition block border border-blue-100 hover:border-blue-600"
+            >
+              Open Attendance Sheet
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );

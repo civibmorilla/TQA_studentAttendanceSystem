@@ -1,122 +1,71 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
-function App() {
-  const [count, setCount] = useState(0)
+// Import Components
+import Sidebar from './components/Sidebar';
+
+// Import Pages
+import Login from './pages/Login';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminAccounts from './pages/AdminAccounts';
+import AdminPrograms from './pages/AdminPrograms';
+import InstructorDashboard from './pages/InstructorDashboard';
+import InstructorAttendance from './pages/InstructorAttendance';
+import InstructorProfile from './pages/InstructorProfile';
+import StudentDashboard from './pages/StudentDashboard';
+import StudentSubjects from './pages/StudentSubjects';
+import StudentAttendance from './pages/StudentAttendance';
+import StudentProfile from './pages/StudentProfile';
+
+// A reusable layout wrapper that includes the Sidebar
+const PortalLayout = ({ children, role }) => {
+  const location = useLocation();
+  
+  // Determine active tab based on URL path
+  let activeTab = 'Dashboard';
+  if (location.pathname.includes('subjects')) activeTab = 'Subjects';
+  if (location.pathname.includes('attendance')) activeTab = 'Attendance';
+  if (location.pathname.includes('profile')) activeTab = 'Profile';
+  if (location.pathname.includes('programs')) activeTab = 'Programs';
+  if (location.pathname.includes('accounts')) activeTab = 'Accounts';
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="flex min-h-screen bg-slate-50">
+      <Sidebar activeRole={role} activeTab={activeTab} />
+      <main className="flex-1 overflow-y-auto">
+        {children}
+      </main>
+    </div>
+  );
+};
 
-      <div className="ticks"></div>
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        {/* Public Route */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {/* Admin Routes */}
+        <Route path="/admin/dashboard" element={<PortalLayout role="ADMIN"><AdminDashboard /></PortalLayout>} />
+        <Route path="/admin/programs" element={<PortalLayout role="ADMIN"><AdminPrograms /></PortalLayout>} />
+        <Route path="/admin/accounts" element={<PortalLayout role="ADMIN"><AdminAccounts /></PortalLayout>} />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        {/* Instructor Routes */}
+        <Route path="/instructor/dashboard" element={<PortalLayout role="INSTRUCTOR"><InstructorDashboard /></PortalLayout>} />
+        <Route path="/instructor/attendance" element={<PortalLayout role="INSTRUCTOR"><InstructorAttendance /></PortalLayout>} />
+        <Route path="/instructor/profile" element={<PortalLayout role="INSTRUCTOR"><InstructorProfile /></PortalLayout>} />
+
+        {/* Student Routes */}
+        <Route path="/student/dashboard" element={<PortalLayout role="STUDENT"><StudentDashboard /></PortalLayout>} />
+        <Route path="/student/subjects" element={<PortalLayout role="STUDENT"><StudentSubjects /></PortalLayout>} />
+        <Route path="/student/attendance" element={<PortalLayout role="STUDENT"><StudentAttendance /></PortalLayout>} />
+        <Route path="/student/profile" element={<PortalLayout role="STUDENT"><StudentProfile /></PortalLayout>} />
+
+        {/* Fallback Route */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </Router>
+  );
 }
-
-export default App
