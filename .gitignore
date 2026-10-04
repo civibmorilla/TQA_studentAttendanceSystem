@@ -1,5 +1,14 @@
+# Dependencies
 node_modules/
+client/node_modules/
+server/node_modules/
+
+# Environment files
 .env
-dist/
-build/
-.DS_Store
+*.env
+client/.env.local
+server/.env
+
+# Build folders
+client/dist/
+client/build/
