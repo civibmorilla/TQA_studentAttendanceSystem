@@ -47,7 +47,8 @@ export default function Sidebar({ activeRole = 'STUDENT', activeTab = 'Dashboard
             </svg>
           </div>
           <div>
-            <h1 className="font-bold text-slate-800 text-base leading-tight tracking-tight">Attendify</h1>
+            <h1 className="font-black text-slate-800 text-base leading-tight tracking-tight uppercase">ClassPulse</h1>
+            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">by XI Labs</p>
           </div>
         </div>
 

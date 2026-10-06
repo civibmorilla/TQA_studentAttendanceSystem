@@ -41,8 +41,14 @@ export default function Login() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8 border border-slate-100">
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-slate-800">Welcome Back</h2>
-          <p className="text-sm text-slate-500">Sign in to your Attendify account</p>
+          <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/25 mx-auto mb-3">
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+            </svg>
+          </div>
+          <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase">CLASSPULSE</h2>
+          <p className="text-xs font-semibold text-slate-500 italic mt-0.5">Student Attendance Management & Tracking System</p>
+          <p className="text-[11px] font-bold text-blue-600 mt-1 uppercase tracking-wider">by XI Labs</p>
         </div>
 
         {/* Role Selector Tabs - Crucial for passing the correct role to the backend */}
