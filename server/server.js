@@ -11,19 +11,40 @@ const attendanceRoutes = require('./routes/attendanceRoutes');
 dotenv.config();
 const app = express();
 
-const clientOrigin = process.env.CLIENT_URL || 'http://localhost:5173';
+const allowedOrigins = [
+  'http://localhost:5173',
+  process.env.CLIENT_URL
+].filter(Boolean);
+
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow mobile, postman, server-to-server or matching origins
-    if (!origin) return callback(null, true);
-    const cleanOrigin = origin.replace(/\/$/, '');
-    const cleanClient = clientOrigin.replace(/\/$/, '');
-    if (cleanOrigin === cleanClient || cleanOrigin.includes('localhost') || cleanOrigin.includes('vercel.app') || cleanOrigin.includes('onrender.com')) {
+    // Allow Postman/server-to-server requests
+    if (!origin) {
       return callback(null, true);
     }
-    return callback(null, true);
+
+    // Allow configured origins
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Allow Vercel deployment URLs
+    if (origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+
+    console.log('Blocked by CORS:', origin);
+    return callback(new Error('Not allowed by CORS'));
   },
-  credentials: true
+
+  credentials: true,
+
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization'
+  ]
 }));
 app.use(express.json());
 
