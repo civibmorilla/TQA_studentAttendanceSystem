@@ -6,6 +6,8 @@ export default function StudentDashboard() {
   const [stats, setStats] = useState({ total: 0, present: 0, late: 0, absent: 0, rate: 100.0, isBelowTarget: false });
   const [logs, setLogs] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [programInfo, setProgramInfo] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const userName = localStorage.getItem('userName') || 'Student';
@@ -16,7 +18,7 @@ export default function StudentDashboard() {
       try {
         const [statsRes, subjectsRes] = await Promise.allSettled([
           API.get('/attendance/my-stats'),
-          API.get('/academic/subjects'),
+          API.get('/academic/my-enrolled-subjects'),
         ]);
 
         if (statsRes.status === 'fulfilled' && statsRes.value.data.success) {
@@ -25,7 +27,15 @@ export default function StudentDashboard() {
         }
 
         if (subjectsRes.status === 'fulfilled' && subjectsRes.value.data.success) {
+          setIsEnrolled(subjectsRes.value.data.isEnrolled);
           setSubjects(subjectsRes.value.data.data || []);
+          if (subjectsRes.value.data.program) {
+            setProgramInfo({
+              program: subjectsRes.value.data.program,
+              section: subjectsRes.value.data.section,
+              yearLevel: subjectsRes.value.data.yearLevel
+            });
+          }
         }
       } catch (err) {
         console.error('Error fetching student dashboard data:', err);
@@ -48,6 +58,27 @@ export default function StudentDashboard() {
           {currentDate}
         </span>
       </div>
+
+      {/* Pending Enrollment Banner */}
+      {!loading && !isEnrolled && (
+        <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between text-amber-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-xl">🔑</span>
+            <div>
+              <h4 className="text-xs font-bold">Enrollment Key Required</h4>
+              <p className="text-[11px] text-amber-700">
+                You have not yet unlocked your courses. Please enter the enrollment key issued by your administrator to assign your program and subjects.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/student/subjects"
+            className="text-xs bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl font-bold shadow-sm transition"
+          >
+            Enter Key Now →
+          </Link>
+        </div>
+      )}
 
       {/* Target Alert Banner */}
       {!loading && stats.rate < 80.0 && stats.total > 0 && (

@@ -120,22 +120,39 @@ export default function StudentProfile() {
 
           <div className="space-y-4 text-xs">
             <div>
-              <span className="block text-[10px] font-bold text-slate-400 uppercase">Role</span>
-              <p className="font-medium text-slate-700 mt-0.5">{profile.role}</p>
-            </div>
-            <div>
-              <span className="block text-[10px] font-bold text-slate-400 uppercase">Student Custom ID</span>
-              <p className="font-medium text-slate-700 mt-0.5">{profile.userCustomId}</p>
-            </div>
-            <div>
-              <span className="block text-[10px] font-bold text-slate-400 uppercase">Account Registered</span>
+              <span className="block text-[10px] font-bold text-slate-400 uppercase">Degree Program</span>
               <p className="font-medium text-slate-700 mt-0.5">
-                {profile.createdAt ? new Date(profile.createdAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
+                {profile.program?.name ? `${profile.program.name} (${profile.program.code})` : 'Pending Administrator Assignment'}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <span className="block text-[10px] font-bold text-slate-400 uppercase">Year Level</span>
+                <p className="font-medium text-slate-700 mt-0.5">{profile.yearLevel || '—'}</p>
+              </div>
+              <div>
+                <span className="block text-[10px] font-bold text-slate-400 uppercase">Section</span>
+                <p className="font-medium text-slate-700 mt-0.5">{profile.section || '—'}</p>
+              </div>
+            </div>
+            <div>
+              <span className="block text-[10px] font-bold text-slate-400 uppercase">Enrolled Subjects</span>
+              <p className="font-medium text-slate-700 mt-0.5">
+                {profile.enrolledSubjects?.length ? `${profile.enrolledSubjects.length} Academic Subjects` : 'None yet'}
               </p>
             </div>
             <div>
               <span className="block text-[10px] font-bold text-slate-400 uppercase">Enrollment Status</span>
-              <p className="font-medium text-emerald-600 mt-0.5 font-semibold">Active Enrolled</p>
+              {profile.isEnrolled ? (
+                <p className="font-medium text-emerald-600 mt-0.5 font-bold flex items-center gap-1.5">
+                  <span>● Active Enrolled</span>
+                  {profile.enrollmentKey && <span className="text-[10px] text-slate-400 font-mono">({profile.enrollmentKey})</span>}
+                </p>
+              ) : (
+                <p className="font-medium text-amber-600 mt-0.5 font-bold">
+                  ⚠️ Pending Enrollment Key
+                </p>
+              )}
             </div>
           </div>
         </div>

@@ -43,11 +43,25 @@ exports.getClassAttendance = async (req, res) => {
 // @access  Private (Student Only)
 exports.getStudentStats = async (req, res) => {
   try {
+    const student = await User.findById(req.user.id);
+    if (!student || !student.isEnrolled) {
+      return res.status(200).json({
+        success: true,
+        isEnrolled: false,
+        stats: { total: 0, present: 0, late: 0, absent: 0, rate: 100.0, isBelowTarget: false },
+        logs: []
+      });
+    }
+
     const studentId = req.user.id;
     const { subjectId } = req.query; // Optional: filter by specific subject
 
     let query = { studentId };
-    if (subjectId) query.subjectId = subjectId;
+    if (subjectId) {
+      query.subjectId = subjectId;
+    } else if (student.enrolledSubjects && student.enrolledSubjects.length > 0) {
+      query.subjectId = { $in: student.enrolledSubjects };
+    }
 
     const logs = await Attendance.find(query).populate('subjectId', 'title code');
 
@@ -62,6 +76,7 @@ exports.getStudentStats = async (req, res) => {
 
     res.status(200).json({
       success: true,
+      isEnrolled: true,
       stats: { total, present, late, absent, rate: Number(rate), isBelowTarget },
       logs
     });
@@ -78,9 +93,16 @@ exports.getStudentsBySection = async (req, res) => {
     if (!section) {
       return res.status(400).json({ success: false, message: 'Section query parameter is required' });
     }
-    // Find students whose userCustomId starts with the program code or whose section matches
-    // For simplicity, we return all students; instructor selects section from subject data
-    const students = await User.find({ role: 'STUDENT' }).select('fullName userCustomId');
+    
+    // Find students enrolled in this section
+    let students = await User.find({ role: 'STUDENT', section: section, isEnrolled: true })
+      .select('fullName userCustomId section');
+
+    // Fallback if no students enrolled in that specific section yet
+    if (students.length === 0) {
+      students = await User.find({ role: 'STUDENT' }).select('fullName userCustomId section');
+    }
+
     res.status(200).json({ success: true, count: students.length, data: students });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

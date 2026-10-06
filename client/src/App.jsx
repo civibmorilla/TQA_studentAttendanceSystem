@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminAccounts from './pages/AdminAccounts';
 import AdminPrograms from './pages/AdminPrograms';
+import AdminEnrollmentKeys from './pages/AdminEnrollmentKeys';
 import InstructorDashboard from './pages/InstructorDashboard';
 import InstructorAttendance from './pages/InstructorAttendance';
 import InstructorProfile from './pages/InstructorProfile';
@@ -29,6 +30,7 @@ const PortalLayout = ({ children, role }) => {
   if (location.pathname.includes('profile')) activeTab = 'Profile';
   if (location.pathname.includes('programs')) activeTab = 'Programs';
   if (location.pathname.includes('accounts')) activeTab = 'Accounts';
+  if (location.pathname.includes('enrollment-keys')) activeTab = 'EnrollmentKeys';
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -52,6 +54,7 @@ export default function App() {
         <Route path="/admin/dashboard" element={<PortalLayout role="ADMIN"><AdminDashboard /></PortalLayout>} />
         <Route path="/admin/programs" element={<PortalLayout role="ADMIN"><AdminPrograms /></PortalLayout>} />
         <Route path="/admin/accounts" element={<PortalLayout role="ADMIN"><AdminAccounts /></PortalLayout>} />
+        <Route path="/admin/enrollment-keys" element={<PortalLayout role="ADMIN"><AdminEnrollmentKeys /></PortalLayout>} />
 
         {/* Instructor Routes */}
         <Route path="/instructor/dashboard" element={<PortalLayout role="INSTRUCTOR"><InstructorDashboard /></PortalLayout>} />

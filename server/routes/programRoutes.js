@@ -6,7 +6,13 @@ const {
   updateProgram,
   deleteProgram,
   createSubject, 
-  getSubjects 
+  getSubjects,
+  createEnrollmentKey,
+  getEnrollmentKeys,
+  deleteEnrollmentKey,
+  enrollWithKey,
+  getMyEnrolledSubjects,
+  assignStudentDirectly
 } = require('../controllers/programController');
 
 // Import authentication and authorization middleware from BE Dev 1
@@ -25,5 +31,19 @@ router.route('/programs/:id')
 router.route('/subjects')
   .get(protect, getSubjects)
   .post(protect, authorize('ADMIN'), createSubject);
+
+// Enrollment Keys Routes (Admin)
+router.route('/enrollment-keys')
+  .get(protect, authorize('ADMIN'), getEnrollmentKeys)
+  .post(protect, authorize('ADMIN'), createEnrollmentKey);
+
+router.route('/enrollment-keys/:id')
+  .delete(protect, authorize('ADMIN'), deleteEnrollmentKey);
+
+router.post('/assign-student', protect, authorize('ADMIN'), assignStudentDirectly);
+
+// Student Self-Enrollment Routes
+router.post('/enroll-with-key', protect, authorize('STUDENT'), enrollWithKey);
+router.get('/my-enrolled-subjects', protect, authorize('STUDENT'), getMyEnrolledSubjects);
 
 module.exports = router;

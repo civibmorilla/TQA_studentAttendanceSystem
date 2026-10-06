@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Program = require('../models/Program');
 const Subject = require('../models/Subject');
+const EnrollmentKey = require('../models/EnrollmentKey');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
@@ -11,16 +12,57 @@ const generateToken = (id, role) => {
 // @desc    Register a new user (Student, Instructor, or Admin)
 exports.registerUser = async (req, res) => {
   try {
-    const { userCustomId, fullName, email, password, role, contactNo, address } = req.body;
+    const { userCustomId, fullName, email, password, role, contactNo, address, enrollmentKey } = req.body;
 
     const userExists = await User.findOne({ $or: [{ email }, { userCustomId }] });
     if (userExists) {
       return res.status(400).json({ success: false, message: 'User already exists in the system' });
     }
 
+    let enrollmentData = { isEnrolled: false };
+
+    // Process enrollment key if provided by student
+    if (role === 'STUDENT' && enrollmentKey && enrollmentKey.trim()) {
+      const cleanKey = enrollmentKey.trim().toUpperCase();
+      const keyDoc = await EnrollmentKey.findOne({ key: cleanKey, status: 'ACTIVE' });
+      if (!keyDoc) {
+        return res.status(400).json({ success: false, message: 'Invalid or inactive enrollment key provided.' });
+      }
+      if (keyDoc.useCount >= keyDoc.maxUses) {
+        return res.status(400).json({ success: false, message: 'This enrollment key has already reached its maximum usage limit.' });
+      }
+
+      enrollmentData = {
+        isEnrolled: true,
+        program: keyDoc.program,
+        yearLevel: keyDoc.yearLevel,
+        section: keyDoc.section,
+        enrolledSubjects: keyDoc.subjects,
+        enrollmentKey: cleanKey
+      };
+    }
+
     const user = await User.create({
-      userCustomId, fullName, email, password, role, contactNo, address
+      userCustomId,
+      fullName,
+      email,
+      password,
+      role,
+      contactNo,
+      address,
+      ...enrollmentData
     });
+
+    if (enrollmentData.isEnrolled && enrollmentKey) {
+      const cleanKey = enrollmentKey.trim().toUpperCase();
+      await EnrollmentKey.findOneAndUpdate(
+        { key: cleanKey },
+        { 
+          $inc: { useCount: 1 },
+          $push: { usedBy: { student: user._id, usedAt: new Date() } }
+        }
+      );
+    }
 
     if (user) {
       res.status(201).json({
@@ -28,6 +70,7 @@ exports.registerUser = async (req, res) => {
         _id: user._id,
         name: user.fullName,
         role: user.role,
+        isEnrolled: user.isEnrolled,
         token: generateToken(user._id, user.role),
       });
     }
@@ -65,7 +108,13 @@ exports.loginUser = async (req, res) => {
 // @desc    Get current user profile
 exports.getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
+    const user = await User.findById(req.user.id)
+      .populate('program', 'code name')
+      .populate({
+        path: 'enrolledSubjects',
+        populate: { path: 'instructor', select: 'fullName email' }
+      })
+      .select('-password');
     if (user) {
       res.json({ success: true, data: user });
     } else {
@@ -82,7 +131,9 @@ exports.getProfile = async (req, res) => {
 // @access  Private (Admin Only)
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select('-password');
+    const users = await User.find()
+      .populate('program', 'code name')
+      .select('-password');
     res.status(200).json({ success: true, count: users.length, data: users });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

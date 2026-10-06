@@ -9,7 +9,8 @@ export default function Register() {
         fullName: '',
         email: '',
         password: '',
-        role: 'STUDENT'
+        role: 'STUDENT',
+        enrollmentKey: ''
     });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -117,6 +118,25 @@ export default function Register() {
                             required
                         />
                     </div>
+
+                    {formData.role === 'STUDENT' && (
+                        <div>
+                            <div className="flex justify-between items-center mb-1">
+                                <label className="block text-xs font-semibold text-slate-500 uppercase">
+                                    Enrollment Key (Optional)
+                                </label>
+                                <span className="text-[10px] text-slate-400">Issued by admin</span>
+                            </div>
+                            <input
+                                type="text"
+                                name="enrollmentKey"
+                                placeholder="e.g., ENR-BSCPE-XXXX (or redeem later)"
+                                value={formData.enrollmentKey}
+                                onChange={handleChange}
+                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 text-sm font-mono uppercase"
+                            />
+                        </div>
+                    )}
 
                     <button
                         type="submit"

@@ -16,16 +16,19 @@ export default function StudentAttendance() {
 
   const studentName = localStorage.getItem('userName') || 'Student';
 
+  const [isEnrolled, setIsEnrolled] = useState(true);
+
   // Load available subjects for filter dropdown
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const res = await API.get('/academic/subjects');
+        const res = await API.get('/academic/my-enrolled-subjects');
         if (res.data.success) {
-          setSubjects(res.data.data);
+          setIsEnrolled(res.data.isEnrolled);
+          setSubjects(res.data.data || []);
         }
       } catch (err) {
-        console.error('Failed to load subjects:', err);
+        console.error('Failed to load enrolled subjects:', err);
       }
     };
     fetchSubjects();

@@ -14,7 +14,14 @@ const UserSchema = new mongoose.Schema({
   },
   isActive: { type: Boolean, default: true },
   contactNo: { type: String, default: '0917-000-0000' },
-  address: { type: String, default: 'Bataan, Philippines' }
+  address: { type: String, default: 'Bataan, Philippines' },
+  // Academic Enrollment Configuration (assigned via Admin / Enrollment Key)
+  program: { type: mongoose.Schema.Types.ObjectId, ref: 'Program', default: null },
+  yearLevel: { type: String, default: null },
+  section: { type: String, default: null },
+  enrolledSubjects: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Subject' }],
+  isEnrolled: { type: Boolean, default: false },
+  enrollmentKey: { type: String, default: null }
 }, { timestamps: true });
 
 // Hash password before saving to the database

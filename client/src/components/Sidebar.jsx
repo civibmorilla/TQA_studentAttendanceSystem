@@ -23,6 +23,7 @@ export default function Sidebar({ activeRole = 'STUDENT', activeTab = 'Dashboard
       { id: 'Dashboard', label: 'Dashboard', icon: '🏠', path: '/admin/dashboard' },
       { id: 'Programs', label: 'Programs', icon: '📚', path: '/admin/programs' },
       { id: 'Accounts', label: 'Accounts', icon: '👥', path: '/admin/accounts' },
+      { id: 'EnrollmentKeys', label: 'Enrollment Keys', icon: '🔑', path: '/admin/enrollment-keys' },
     ]
   };
 

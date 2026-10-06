@@ -225,6 +225,7 @@ export default function AdminAccounts() {
                   <th className="py-3 px-4">Full Name</th>
                   <th className="py-3 px-4">Role</th>
                   <th className="py-3 px-4">Email</th>
+                  <th className="py-3 px-4">Enrollment</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
@@ -247,6 +248,21 @@ export default function AdminAccounts() {
                       </td>
                       <td className="py-4 px-4 text-slate-600">{user.email}</td>
                       <td className="py-4 px-4">
+                        {user.role === 'STUDENT' ? (
+                          user.isEnrolled ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              ✓ Enrolled ({user.section || user.program?.code || 'Active'})
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                              ⚠️ Pending Key
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-medium">—</span>
+                        )}
+                      </td>
+                      <td className="py-4 px-4">
                         {isActive ? (
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                             ● Active
@@ -258,6 +274,15 @@ export default function AdminAccounts() {
                         )}
                       </td>
                       <td className="py-4 px-4 text-right space-x-2">
+                        {user.role === 'STUDENT' && !user.isEnrolled && (
+                          <a
+                            href="/admin/enrollment-keys"
+                            className="px-2.5 py-1.5 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition shadow-sm font-semibold inline-block text-xs"
+                            title="Issue Enrollment Key for this student"
+                          >
+                            🔑 Issue Key
+                          </a>
+                        )}
                         {/* Deactivate / Reactivate Button */}
                         {isActive ? (
                           <button 
