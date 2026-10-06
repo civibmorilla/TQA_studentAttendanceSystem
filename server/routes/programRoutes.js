@@ -3,6 +3,8 @@ const router = express.Router();
 const { 
   createProgram, 
   getPrograms, 
+  updateProgram,
+  deleteProgram,
   createSubject, 
   getSubjects 
 } = require('../controllers/programController');
@@ -14,6 +16,10 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 router.route('/programs')
   .get(protect, getPrograms)
   .post(protect, authorize('ADMIN'), createProgram);
+
+router.route('/programs/:id')
+  .put(protect, authorize('ADMIN'), updateProgram)
+  .delete(protect, authorize('ADMIN'), deleteProgram);
 
 // Subject Routes
 router.route('/subjects')

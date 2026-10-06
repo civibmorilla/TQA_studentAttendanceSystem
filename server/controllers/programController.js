@@ -25,6 +25,37 @@ exports.getPrograms = async (req, res) => {
   }
 };
 
+// @desc    Update an academic program
+// @access  Private (Admin only)
+exports.updateProgram = async (req, res) => {
+  try {
+    const program = await Program.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true
+    });
+    if (!program) {
+      return res.status(404).json({ success: false, message: 'Program not found' });
+    }
+    res.status(200).json({ success: true, data: program });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Delete an academic program
+// @access  Private (Admin only)
+exports.deleteProgram = async (req, res) => {
+  try {
+    const program = await Program.findByIdAndDelete(req.params.id);
+    if (!program) {
+      return res.status(404).json({ success: false, message: 'Program not found' });
+    }
+    res.status(200).json({ success: true, message: 'Program deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // ================= SUBJECTS ================= //
 
 // @desc    Create a new subject/class schedule

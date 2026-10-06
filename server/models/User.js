@@ -12,6 +12,7 @@ const UserSchema = new mongoose.Schema({
     default: 'STUDENT',
     required: true 
   },
+  isActive: { type: Boolean, default: true },
   contactNo: { type: String, default: '0917-000-0000' },
   address: { type: String, default: 'Bataan, Philippines' }
 }, { timestamps: true });

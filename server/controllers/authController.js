@@ -43,6 +43,10 @@ exports.loginUser = async (req, res) => {
     const user = await User.findOne({ userCustomId: username, role });
 
     if (user && (await bcrypt.compare(password, user.password))) {
+      if (user.isActive === false) {
+        return res.status(403).json({ success: false, message: 'This account has been deactivated. Please contact an administrator.' });
+      }
+
       res.json({
         success: true,
         _id: user._id,
