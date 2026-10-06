@@ -1,32 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import API from '../services/api';
 
 export default function StudentProfile() {
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [showSensitive, setShowSensitive] = useState(false);
 
-  const studentData = {
-    name: 'Juan Dela Cruz',
-    studentId: 'BSCpE-1234-0000',
-    sectionBadge: 'BSCpE-101',
-    dob: 'January 1, 2000',
-    email: 'juandelacruz@gmail.com',
-    contact: '09876543210',
-    address: '123 Rizal St. Bataan, Philippines',
-    program: 'Bachelor of Science in Computer Engineering',
-    yearLevel: '3rd Year',
-    section: 'BSCpE-101',
-    enrollmentStatus: 'Regular Student'
+  const fetchProfile = async (unmask = false) => {
+    try {
+      const url = unmask ? '/auth/profile?unmask=true' : '/auth/profile';
+      const res = await API.get(url);
+      if (res.data.success) {
+        setProfile(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load profile:', err);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchProfile(false);
+  }, []);
+
+  const handleToggleSensitive = () => {
+    const newState = !showSensitive;
+    setShowSensitive(newState);
+    fetchProfile(newState);
+  };
+
+  if (loading) {
+    return (
+      <div className="p-8 bg-slate-50 min-h-screen flex items-center justify-center">
+        <p className="text-xs text-slate-400">Loading student profile...</p>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="p-8 bg-slate-50 min-h-screen flex items-center justify-center">
+        <p className="text-xs text-slate-400">Could not load profile data.</p>
+      </div>
+    );
+  }
+
+  const initials = profile.fullName
+    ? profile.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+    : 'ST';
 
   return (
     <div className="p-8 bg-slate-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">My Profile</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">My Profile</h1>
+          <p className="text-xs text-slate-400">View and manage your student credentials and privacy settings</p>
+        </div>
         <div className="flex items-center gap-3">
-          <button className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 shadow-sm">
-            📷 Scan Student Barcode / QR ID
-          </button>
-          <span className="text-xs text-slate-500 font-medium">
-            Term: <strong className="text-blue-600">1st Sem, 2026</strong>
+          <span className="text-xs font-semibold bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg shadow-sm">
+            Student Portal
           </span>
         </div>
       </div>
@@ -35,22 +68,20 @@ export default function StudentProfile() {
       <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between mb-6">
         <div className="flex items-center gap-5">
           <div className="w-20 h-20 bg-blue-50 border border-blue-100 rounded-full flex items-center justify-center text-blue-600 text-2xl font-bold">
-            👤
+            {initials}
           </div>
           <div>
             <div className="flex items-center gap-3">
-              <h2 className="text-xl font-bold text-slate-800">{studentData.name}</h2>
+              <h2 className="text-xl font-bold text-slate-800">{profile.fullName}</h2>
               <span className="bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded-md text-[10px] font-bold">
-                {studentData.sectionBadge}
+                Student
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-1">Student ID: <strong className="text-slate-600">{studentData.studentId}</strong></p>
+            <p className="text-xs text-slate-400 mt-1">
+              Student ID: <strong className="text-slate-600">{profile.userCustomId}</strong> • Email: <strong className="text-slate-600">{profile.email}</strong>
+            </p>
           </div>
         </div>
-
-        <button className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 shadow-sm">
-          Edit Profile
-        </button>
       </div>
 
       {/* Profile Details Split Grid */}
@@ -60,7 +91,7 @@ export default function StudentProfile() {
           <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
             <h3 className="text-sm font-bold text-slate-800">Personal Information</h3>
             <button
-              onClick={() => setShowSensitive(!showSensitive)}
+              onClick={handleToggleSensitive}
               className="text-[11px] font-semibold text-blue-600 hover:underline"
             >
               {showSensitive ? '🔒 Hide Personal Details' : '👁️ Show Personal Details'}
@@ -69,48 +100,42 @@ export default function StudentProfile() {
 
           <div className="space-y-4 text-xs">
             <div>
-              <span className="block text-[10px] font-bold text-slate-400 uppercase">Date of Birth</span>
-              <p className="font-medium text-slate-700 mt-0.5">{studentData.dob}</p>
-            </div>
-            <div>
               <span className="block text-[10px] font-bold text-slate-400 uppercase">Email Address</span>
-              <p className="font-medium text-slate-700 mt-0.5">{studentData.email}</p>
+              <p className="font-medium text-slate-700 mt-0.5">{profile.email}</p>
             </div>
             <div>
               <span className="block text-[10px] font-bold text-slate-400 uppercase">Contact No.</span>
-              <p className="font-medium text-slate-700 mt-0.5">
-                {showSensitive ? studentData.contact : '••••••••3210'}
-              </p>
+              <p className="font-medium text-slate-700 mt-0.5">{profile.contactNo || '—'}</p>
             </div>
             <div>
               <span className="block text-[10px] font-bold text-slate-400 uppercase">Home Address</span>
-              <p className="font-medium text-slate-700 mt-0.5">
-                {showSensitive ? studentData.address : '123 •••••••• Bataan, Philippines'}
-              </p>
+              <p className="font-medium text-slate-700 mt-0.5">{profile.address || '—'}</p>
             </div>
           </div>
         </div>
 
-        {/* Academic Information */}
+        {/* Academic & Account Information */}
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100">Academic Information</h3>
+          <h3 className="text-sm font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100">Academic & Account Details</h3>
 
           <div className="space-y-4 text-xs">
             <div>
-              <span className="block text-[10px] font-bold text-slate-400 uppercase">Program</span>
-              <p className="font-medium text-slate-700 mt-0.5">{studentData.program}</p>
+              <span className="block text-[10px] font-bold text-slate-400 uppercase">Role</span>
+              <p className="font-medium text-slate-700 mt-0.5">{profile.role}</p>
             </div>
             <div>
-              <span className="block text-[10px] font-bold text-slate-400 uppercase">Year Level</span>
-              <p className="font-medium text-slate-700 mt-0.5">{studentData.yearLevel}</p>
+              <span className="block text-[10px] font-bold text-slate-400 uppercase">Student Custom ID</span>
+              <p className="font-medium text-slate-700 mt-0.5">{profile.userCustomId}</p>
             </div>
             <div>
-              <span className="block text-[10px] font-bold text-slate-400 uppercase">Section</span>
-              <p className="font-medium text-slate-700 mt-0.5">{studentData.section}</p>
+              <span className="block text-[10px] font-bold text-slate-400 uppercase">Account Registered</span>
+              <p className="font-medium text-slate-700 mt-0.5">
+                {profile.createdAt ? new Date(profile.createdAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
+              </p>
             </div>
             <div>
               <span className="block text-[10px] font-bold text-slate-400 uppercase">Enrollment Status</span>
-              <p className="font-medium text-slate-700 mt-0.5">{studentData.enrollmentStatus}</p>
+              <p className="font-medium text-emerald-600 mt-0.5 font-semibold">Active Enrolled</p>
             </div>
           </div>
         </div>

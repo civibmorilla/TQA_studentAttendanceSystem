@@ -1,4 +1,6 @@
 const Attendance = require('../models/Attendance');
+const Subject = require('../models/Subject');
+const User = require('../models/User');
 
 // @desc    Batch save or update daily attendance sheet
 // @access  Private (Instructor Only)
@@ -63,6 +65,23 @@ exports.getStudentStats = async (req, res) => {
       stats: { total, present, late, absent, rate: Number(rate), isBelowTarget },
       logs
     });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get students enrolled in a specific section (for roster building)
+// @access  Private (Instructor/Admin Only)
+exports.getStudentsBySection = async (req, res) => {
+  try {
+    const { section } = req.query;
+    if (!section) {
+      return res.status(400).json({ success: false, message: 'Section query parameter is required' });
+    }
+    // Find students whose userCustomId starts with the program code or whose section matches
+    // For simplicity, we return all students; instructor selects section from subject data
+    const students = await User.find({ role: 'STUDENT' }).select('fullName userCustomId');
+    res.status(200).json({ success: true, count: students.length, data: students });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

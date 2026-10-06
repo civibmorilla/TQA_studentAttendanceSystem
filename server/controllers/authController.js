@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const Program = require('../models/Program');
+const Subject = require('../models/Subject');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
@@ -111,6 +113,42 @@ exports.deleteUser = async (req, res) => {
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     res.status(200).json({ success: true, message: 'User account deactivated and removed' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get aggregated dashboard stats (programs, instructors, classes)
+// @access  Private (Admin Only)
+exports.getDashboardStats = async (req, res) => {
+  try {
+    const programsCount = await Program.countDocuments();
+    const instructorsCount = await User.countDocuments({ role: 'INSTRUCTOR' });
+    const classesCount = await Subject.countDocuments();
+
+    // Get recent instructors (last 5)
+    const recentInstructors = await User.find({ role: 'INSTRUCTOR' })
+      .select('fullName email')
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    // Get recent subjects/classes
+    const recentClasses = await Subject.find()
+      .populate('program', 'code name')
+      .populate('instructor', 'fullName')
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        programs: programsCount,
+        instructors: instructorsCount,
+        classes: classesCount,
+      },
+      recentInstructors,
+      recentClasses,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

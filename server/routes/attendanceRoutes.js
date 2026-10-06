@@ -3,7 +3,8 @@ const router = express.Router();
 const { 
   saveDailyAttendance, 
   getClassAttendance, 
-  getStudentStats 
+  getStudentStats,
+  getStudentsBySection
 } = require('../controllers/attendanceController');
 
 // Import authentication middleware from BE Dev 1
@@ -13,6 +14,9 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 router.route('/class')
   .get(protect, authorize('INSTRUCTOR', 'ADMIN'), getClassAttendance)
   .post(protect, authorize('INSTRUCTOR', 'ADMIN'), saveDailyAttendance);
+
+// Get students for roster building
+router.get('/students', protect, authorize('INSTRUCTOR', 'ADMIN'), getStudentsBySection);
 
 // Student Routes (Requires STUDENT role)
 router.route('/my-stats')

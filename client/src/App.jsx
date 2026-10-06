@@ -16,11 +16,12 @@ import StudentDashboard from './pages/StudentDashboard';
 import StudentSubjects from './pages/StudentSubjects';
 import StudentAttendance from './pages/StudentAttendance';
 import StudentProfile from './pages/StudentProfile';
+import Register from './pages/Register';
 
 // A reusable layout wrapper that includes the Sidebar
 const PortalLayout = ({ children, role }) => {
   const location = useLocation();
-  
+
   // Determine active tab based on URL path
   let activeTab = 'Dashboard';
   if (location.pathname.includes('subjects')) activeTab = 'Subjects';
@@ -45,7 +46,7 @@ export default function App() {
       <Routes>
         {/* Public Route */}
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/register" element={<Register />} /> { }
 
         {/* Admin Routes */}
         <Route path="/admin/dashboard" element={<PortalLayout role="ADMIN"><AdminDashboard /></PortalLayout>} />

@@ -6,7 +6,8 @@ const {
   getProfile,
   getAllUsers,
   updateUser,
-  deleteUser
+  deleteUser,
+  getDashboardStats
 } = require('../controllers/authController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 const { maskSensitiveData } = require('../middleware/privacyMiddleware');
@@ -25,5 +26,8 @@ router.route('/users')
 router.route('/users/:id')
   .put(protect, authorize('ADMIN'), updateUser)
   .delete(protect, authorize('ADMIN'), deleteUser);
+
+// Admin Dashboard Stats Route
+router.get('/dashboard-stats', protect, authorize('ADMIN'), getDashboardStats);
 
 module.exports = router;
