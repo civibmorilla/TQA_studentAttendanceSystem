@@ -13,13 +13,19 @@ const {
   bulkImportStudents,
   getAuditLogs
 } = require('../controllers/authController');
-const { loginLimiter, registerLimiter } = require('../middleware/rateLimits');
+const {
+  requestPasswordReset,
+  getResetRequests,
+  dismissResetRequest
+} = require('../controllers/passwordResetController');
+const { loginLimiter, registerLimiter, forgotPasswordLimiter } = require('../middleware/rateLimits');
 const { protect, authorize, optionalAuth } = require('../middleware/authMiddleware');
 const { maskSensitiveData } = require('../middleware/privacyMiddleware');
 
 // Public Identity Routes
 router.post('/login', loginLimiter, loginUser);
 router.post('/register', registerLimiter, optionalAuth, registerUser);
+router.post('/forgot-password', forgotPasswordLimiter, requestPasswordReset);
 
 // Protected Profile Route (Applies QA Issue #7 Data Masking)
 router.get('/profile', protect, maskSensitiveData, getProfile);
@@ -31,6 +37,8 @@ router.put('/me/password', protect, changeMyPassword);
 router.post('/users/bulk', protect, authorize('ADMIN'), bulkImportStudents);
 router.put('/users/:id/password', protect, authorize('ADMIN'), resetUserPassword);
 router.get('/audit-logs', protect, authorize('ADMIN'), getAuditLogs);
+router.get('/reset-requests', protect, authorize('ADMIN'), getResetRequests);
+router.patch('/reset-requests/:id/dismiss', protect, authorize('ADMIN'), dismissResetRequest);
 router.route('/users')
   .get(protect, authorize('ADMIN'), getAllUsers);
 

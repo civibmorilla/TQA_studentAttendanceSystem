@@ -22,6 +22,15 @@ exports.registerLimiter = rateLimit({
   message: json('Too many sign-ups from this network. Please try again later.')
 });
 
+// "Forgot password" requests: 5 per hour per network, so the form can't be spammed.
+exports.forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: json('Too many reset requests from this network. Please try again in an hour.')
+});
+
 // Stops brute-forcing the 6-character check-in code (per logged-in student).
 exports.checkInLimiter = rateLimit({
   windowMs: 60 * 1000,

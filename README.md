@@ -93,6 +93,7 @@ Our team finalized high-fidelity interface prototypes for all three user roles: 
    * **Academic Terms** (semesters); the current term shows in everyone's sidebar.
    * **Import Students** from a CSV file, with optional enrollment and one-time temporary passwords.
    * **Reset a user's password** (temporary password, forced change at next login).
+   * **Handle "Forgot password" requests**: users send a request from the login page; it appears on the Dashboard and at the top of Accounts, where the admin resets or dismisses it.
    * **Reports** for all classes, **QR ID cards** per section, and an **Audit Log** of who changed what.
 
 ---
@@ -208,7 +209,10 @@ Also new: `PUT` / `DELETE /api/v1/academic/subjects/:id` (Admin).
 | GET | `/excuses/review?status=` | Instructor/Admin | Letters for own classes |
 | PATCH | `/excuses/:id` | Instructor/Admin | `{ status: APPROVED or REJECTED, note }` |
 | PUT | `/auth/me/password` | Any | Change own password |
-| PUT | `/auth/users/:id/password` | Admin | Reset to a temporary password |
+| PUT | `/auth/users/:id/password` | Admin | Reset to a temporary password (also closes that user's reset requests) |
+| POST | `/auth/forgot-password` | Public | Request a reset `{ username, email, note? }`; same reply whether or not the account exists; 5 per hour per network |
+| GET | `/auth/reset-requests?status=` | Admin | Pending (default), RESOLVED, DISMISSED or ALL requests |
+| PATCH | `/auth/reset-requests/:id/dismiss` | Admin | Close a request without resetting |
 | POST | `/auth/users/bulk` | Admin | Import students `{ students, enrollment? }` |
 | GET | `/auth/audit-logs?action=` | Admin | Latest audit entries |
 
@@ -251,7 +255,7 @@ ALLOW_VERCEL_PREVIEWS=false     # true = also allow *.vercel.app preview URLs
 | Security | No security headers | `helmet` (HSTS, no-sniff, frame protection, ...) |
 | Security | Logins lasted 30 days | 1 day (`JWT_EXPIRES_IN`); the app logs out cleanly when it expires |
 | Security | API accepted requests from **any** `*.vercel.app` site | Only `CLIENT_URL` origins (previews opt-in) |
-| Security | No way to recover an account | Admin password reset with forced change; users can change their own password |
+| Security | No way to recover an account | "Forgot password?" request on the login page, admin-verified reset with forced change; users can change their own password |
 | Accountability | No record of who changed attendance | **Audit log** for sheets, scans, sessions, excuses, accounts, subjects, terms |
 | Privacy (RA 10173) | No privacy notice or consent at sign-up | Notice + required consent checkbox; consent time stored |
 | UX | Browser `alert()` pop-ups | On-page toast messages |

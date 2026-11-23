@@ -28,6 +28,31 @@ export default function AdminAccounts() {
   const [modalError, setModalError] = useState('');
   const [notification, setNotification] = useState('');
 
+  // "Forgot password" requests sent from the login page
+  const [resetRequests, setResetRequests] = useState([]);
+
+  const fetchResetRequests = async () => {
+    try {
+      const res = await API.get('/auth/reset-requests', { params: { status: 'PENDING' } });
+      if (res.data.success) setResetRequests(res.data.data);
+    } catch (err) {
+      console.error('Failed to load reset requests:', err);
+    }
+  };
+
+  const handleDismissRequest = async (request) => {
+    if (!window.confirm(`Dismiss the reset request from ${request.user.fullName} (${request.user.userCustomId})? Their password stays the same.`)) {
+      return;
+    }
+    try {
+      await API.patch(`/auth/reset-requests/${request._id}/dismiss`);
+      toast.success('Request dismissed.');
+      fetchResetRequests();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to dismiss the request.');
+    }
+  };
+
   const fetchUsers = async () => {
     try {
       const res = await API.get('/auth/users');
@@ -43,6 +68,7 @@ export default function AdminAccounts() {
 
   useEffect(() => {
     fetchUsers();
+    fetchResetRequests();
 
     // Check if query params ask to create an account
     const createRole = searchParams.get('create');
@@ -102,6 +128,7 @@ export default function AdminAccounts() {
     try {
       const res = await API.put(`/auth/users/${user._id}/password`, {});
       setResetResult({ name: user.fullName, id: user.userCustomId, password: res.data.temporaryPassword });
+      fetchResetRequests(); // the server closes this person's open requests
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to reset password.');
     }
@@ -183,6 +210,49 @@ export default function AdminAccounts() {
           <span>✅ {notification}</span>
           <button onClick={() => setNotification('')} className="text-emerald-600 hover:text-emerald-900 font-bold">✕</button>
         </div>
+      )}
+
+      {/* Password reset requests from the "Forgot password?" page */}
+      {resetRequests.length > 0 && (
+        <section aria-labelledby="rr-title" className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-6">
+          <h3 id="rr-title" className="text-lg font-bold text-amber-900">
+            🔑 Password reset requests ({resetRequests.length})
+          </h3>
+          <p className="text-sm text-amber-900/80 mt-1 mb-4">
+            Check that the request really comes from this person (for example, their school ID), then reset their password and give them the temporary password privately.
+          </p>
+          <ul className="space-y-3">
+            {resetRequests.map((r) => (
+              <li key={r._id} className="bg-white rounded-xl border border-amber-100 p-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-bold text-slate-800">
+                    {r.user.fullName} <span className="font-mono text-sm text-slate-500">({r.user.userCustomId})</span>
+                    <span className="ml-2 text-xs font-bold uppercase tracking-wider text-slate-500">{r.user.role}</span>
+                  </p>
+                  <p className="text-sm text-slate-500">
+                    {r.user.email} · requested {new Date(r.lastRequestedAt).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}
+                    {r.requestCount > 1 && <span> · {r.requestCount} times</span>}
+                  </p>
+                  {r.note && <p className="text-sm text-slate-700 mt-1">“{r.note}”</p>}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleResetPassword(r.user)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition"
+                  >
+                    Reset password
+                  </button>
+                  <button
+                    onClick={() => handleDismissRequest(r)}
+                    className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-bold transition"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {/* Main Directory Table Box */}

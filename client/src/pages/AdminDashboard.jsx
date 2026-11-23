@@ -114,6 +114,16 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {stats.pendingResetRequests > 0 && (
+        <button
+          onClick={() => navigate('/admin/accounts')}
+          className="w-full mb-6 p-4 bg-amber-50 border border-amber-200 text-amber-900 text-sm font-bold rounded-xl flex items-center justify-between hover:bg-amber-100 transition text-left"
+        >
+          <span>🔑 {stats.pendingResetRequests} password reset {stats.pendingResetRequests === 1 ? 'request is' : 'requests are'} waiting</span>
+          <span className="text-amber-700">Review in Accounts →</span>
+        </button>
+      )}
+
       <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Quick Management Actions</h2>
       
       {/* Account Creation Cards */}

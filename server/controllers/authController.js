@@ -7,6 +7,8 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const AuditLog = require('../models/AuditLog');
 const { logAudit } = require('../utils/audit');
+const PasswordResetRequest = require('../models/PasswordResetRequest');
+const { resolveRequestsFor } = require('./passwordResetController');
 
 const generateToken = (id, role) => {
   // SECURITY: sessions last 1 day by default (was 30 days). Override with JWT_EXPIRES_IN.
@@ -229,6 +231,7 @@ exports.getDashboardStats = async (req, res) => {
     const programsCount = await Program.countDocuments();
     const instructorsCount = await User.countDocuments({ role: 'INSTRUCTOR' });
     const classesCount = await Subject.countDocuments();
+    const pendingResetRequests = await PasswordResetRequest.countDocuments({ status: 'PENDING' });
 
     // Get recent instructors (last 5)
     const recentInstructors = await User.find({ role: 'INSTRUCTOR' })
@@ -249,6 +252,7 @@ exports.getDashboardStats = async (req, res) => {
         programs: programsCount,
         instructors: instructorsCount,
         classes: classesCount,
+        pendingResetRequests,
       },
       recentInstructors,
       recentClasses,
@@ -298,6 +302,8 @@ exports.resetUserPassword = async (req, res) => {
     user.mustChangePassword = true;
     await user.save();
     logAudit(req, 'user.reset_password', { entity: 'User', entityId: user._id, summary: `Reset password for ${user.userCustomId}` });
+    // Close any "forgot password" request this person made
+    await resolveRequestsFor(user._id, req.user._id);
     res.status(200).json({
       success: true,
       message: `Password reset for ${user.fullName}. They will be asked to change it after logging in.`,

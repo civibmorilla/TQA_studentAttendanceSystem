@@ -9,6 +9,7 @@ import ChangePasswordModal from './components/ChangePasswordModal';
 // Pages
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminAccounts from './pages/AdminAccounts';
 import AdminPrograms from './pages/AdminPrograms';
@@ -71,6 +72,7 @@ export default function App() {
         {/* Public */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Admin */}
         <Route path="/admin/dashboard" element={page('ADMIN', <AdminDashboard />)} />
