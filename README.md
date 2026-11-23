@@ -144,7 +144,7 @@ TQA_studentAttendanceSystem/
 cd server
 cp .env.example .env      # fill in MONGO_URI and JWT_SECRET
 npm install
-npm run seed              # optional: demo accounts + one class
+npm run seed              # optional: demo accounts + one class with 4 subjects
 npm run dev               # http://localhost:5000
 
 # Front-end (new terminal)
@@ -155,7 +155,9 @@ npm run dev               # http://localhost:5173
 
 Set `VITE_API_BASE_URL` in `client/.env.local` if the API is not at `http://localhost:5000/api/v1`.
 
-**Demo accounts** (after `npm run seed`, password `password123`): `ADMIN-01`, `INST-01`, `STU-001`, `STU-002`, `STU-003`. Type the ID as the username and pick the matching role tab.
+**Demo accounts** (after `npm run seed`, password `password123`): `ADMIN-01`, `INST-01`, and students `STU-001` to `STU-010`. Type the ID as the username and pick the matching role tab.
+
+The seed also creates class **DEMO-301** with 4 subjects, all taught by `INST-01`, and enrolls all 10 students in every subject: `TQA-DEMO` (Test and Quality Assurance), `WEB-DEMO` (Web Systems and Technologies), `DBMS-DEMO` (Database Management Systems) and `NET-DEMO` (Data Communications and Networking). Run `npm run seed -- --reset-passwords` if an existing demo account can't log in.
 
 **First-time setup without the seed:** register the first **Admin** from the sign-up page (only allowed while no admin exists). Then, as that admin, create a term → instructors → programs → **Subjects & Classes** → import students or issue enrollment keys.
 
