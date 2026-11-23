@@ -1,25 +1,53 @@
 const express = require('express');
 const router = express.Router();
-const { 
-  saveDailyAttendance, 
-  getClassAttendance, 
+const {
+  saveDailyAttendance,
+  getClassAttendance,
   getStudentStats,
-  getStudentsBySection
+  getStudentsBySection,
+  startSession,
+  getSessionLive,
+  getActiveSessions,
+  closeSession,
+  checkIn,
+  getMyQr,
+  scanStudent,
+  getSubjectReport,
+  getClassSummaries,
+  getIdCards
 } = require('../controllers/attendanceController');
+const { checkInLimiter } = require('../middleware/rateLimits');
 
-// Import authentication middleware from BE Dev 1
 const { protect, authorize } = require('../middleware/authMiddleware');
 
-// Instructor Routes (Requires INSTRUCTOR role)
+const staff = [protect, authorize('INSTRUCTOR', 'ADMIN')];
+const student = [protect, authorize('STUDENT')];
+
+// Manual attendance sheet
 router.route('/class')
-  .get(protect, authorize('INSTRUCTOR', 'ADMIN'), getClassAttendance)
-  .post(protect, authorize('INSTRUCTOR', 'ADMIN'), saveDailyAttendance);
+  .get(...staff, getClassAttendance)
+  .post(...staff, saveDailyAttendance);
 
-// Get students for roster building
-router.get('/students', protect, authorize('INSTRUCTOR', 'ADMIN'), getStudentsBySection);
+// Roster building (?subjectId=... preferred, ?section=... legacy)
+router.get('/students', ...staff, getStudentsBySection);
 
-// Student Routes (Requires STUDENT role)
-router.route('/my-stats')
-  .get(protect, authorize('STUDENT'), getStudentStats);
+// QR check-in sessions (instructor projects a rotating QR)
+router.post('/sessions', ...staff, startSession);
+router.get('/sessions/active', ...staff, getActiveSessions);
+router.get('/sessions/:id', ...staff, getSessionLive);
+router.post('/sessions/:id/close', ...staff, closeSession);
+
+// Instructor scans a student's ID QR
+router.post('/scan-student', ...staff, scanStudent);
+
+// Reports / CSV export
+router.get('/report', ...staff, getSubjectReport);
+router.get('/summary', ...staff, getClassSummaries);
+router.get('/id-cards', ...staff, getIdCards);
+
+// Student routes
+router.get('/my-stats', ...student, getStudentStats);
+router.get('/my-qr', ...student, getMyQr);
+router.post('/check-in', ...student, checkInLimiter, checkIn);
 
 module.exports = router;

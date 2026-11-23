@@ -4,15 +4,44 @@ const Subject = require('../models/Subject');
 const EnrollmentKey = require('../models/EnrollmentKey');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const AuditLog = require('../models/AuditLog');
+const { logAudit } = require('../utils/audit');
 
 const generateToken = (id, role) => {
-  return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '30d' });
+  // SECURITY: sessions last 1 day by default (was 30 days). Override with JWT_EXPIRES_IN.
+  return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '1d' });
 };
 
 // @desc    Register a new user (Student, Instructor, or Admin)
 exports.registerUser = async (req, res) => {
   try {
-    const { userCustomId, fullName, email, password, role, contactNo, address, enrollmentKey } = req.body;
+    const { userCustomId, fullName, email, password, contactNo, address, enrollmentKey } = req.body;
+    let role = req.body.role || 'STUDENT';
+
+    // SECURITY FIX: the public sign-up form used to let anyone create an ADMIN.
+    // Staff accounts (INSTRUCTOR / ADMIN) can now only be created by a logged-in admin,
+    // except for the very first ADMIN (bootstrap of an empty database).
+    if (role !== 'STUDENT') {
+      const isAdminCaller = req.user && req.user.role === 'ADMIN';
+      const isBootstrap = role === 'ADMIN' && (await User.countDocuments({ role: 'ADMIN' })) === 0;
+      if (!isAdminCaller && !isBootstrap) {
+        return res.status(403).json({ success: false, message: 'Only an administrator can create instructor or admin accounts.' });
+      }
+    }
+    if (!['STUDENT', 'INSTRUCTOR', 'ADMIN'].includes(role)) role = 'STUDENT';
+    if (!userCustomId || !fullName || !email || !password) {
+      return res.status(400).json({ success: false, message: 'ID, full name, email and password are required.' });
+    }
+    if (String(password).length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+    }
+
+    // RA 10173: people signing themselves up must accept the privacy notice
+    const isAdminCreating = req.user && req.user.role === 'ADMIN';
+    if (!isAdminCreating && req.body.privacyConsent !== true) {
+      return res.status(400).json({ success: false, message: 'Please read and accept the privacy notice to create an account.' });
+    }
 
     const userExists = await User.findOne({ $or: [{ email }, { userCustomId }] });
     if (userExists) {
@@ -50,8 +79,12 @@ exports.registerUser = async (req, res) => {
       role,
       contactNo,
       address,
+      privacyConsentAt: isAdminCreating ? null : new Date(),
       ...enrollmentData
     });
+    if (isAdminCreating) {
+      logAudit(req, 'user.create', { entity: 'User', entityId: user._id, summary: `Created ${role} account ${userCustomId} (${fullName})` });
+    }
 
     if (enrollmentData.isEnrolled && enrollmentKey) {
       const cleanKey = enrollmentKey.trim().toUpperCase();
@@ -95,6 +128,7 @@ exports.loginUser = async (req, res) => {
         _id: user._id,
         name: user.fullName,
         role: user.role,
+        mustChangePassword: user.mustChangePassword,
         token: generateToken(user._id, user.role),
       });
     } else {
@@ -149,12 +183,23 @@ exports.updateUser = async (req, res) => {
       delete req.body.password;
     }
     
+    // Fields that must never be set through this route
+    ['password', 'privacyConsentAt', 'mustChangePassword'].forEach((f) => delete req.body[f]);
+    if (String(req.params.id) === String(req.user._id) && (req.body.role || req.body.isActive === false)) {
+      return res.status(400).json({ success: false, message: 'You cannot change your own role or deactivate yourself.' });
+    }
+
     const user = await User.findByIdAndUpdate(req.params.id, req.body, {
       new: true, 
       runValidators: true
     }).select('-password');
     
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    logAudit(req, 'user.update', {
+      entity: 'User', entityId: user._id,
+      summary: `Updated ${user.userCustomId}: ${Object.keys(req.body).join(', ')}`,
+      details: req.body
+    });
     res.status(200).json({ success: true, data: user });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -165,8 +210,12 @@ exports.updateUser = async (req, res) => {
 // @access  Private (Admin Only)
 exports.deleteUser = async (req, res) => {
   try {
+    if (String(req.params.id) === String(req.user._id)) {
+      return res.status(400).json({ success: false, message: 'You cannot delete your own account.' });
+    }
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    logAudit(req, 'user.delete', { entity: 'User', entityId: user._id, summary: `Deleted ${user.role} ${user.userCustomId} (${user.fullName})` });
     res.status(200).json({ success: true, message: 'User account deactivated and removed' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -204,6 +253,142 @@ exports.getDashboardStats = async (req, res) => {
       recentInstructors,
       recentClasses,
     });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ================= PASSWORDS ================= //
+
+// 10-character temporary password, e.g. 'k3f9a01bc2'
+const tempPassword = () => crypto.randomBytes(5).toString('hex');
+
+// @desc    Logged-in user changes their own password
+// @access  Private (any role)
+exports.changeMyPassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!newPassword || String(newPassword).length < 8) {
+      return res.status(400).json({ success: false, message: 'New password must be at least 8 characters.' });
+    }
+    const user = await User.findById(req.user._id);
+    if (!(await bcrypt.compare(currentPassword || '', user.password))) {
+      return res.status(400).json({ success: false, message: 'Current password is incorrect.' });
+    }
+    user.password = newPassword;
+    user.mustChangePassword = false;
+    await user.save();
+    logAudit(req, 'user.change_password', { entity: 'User', entityId: user._id, summary: `${user.userCustomId} changed their password` });
+    res.status(200).json({ success: true, message: 'Password updated.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Admin resets someone's password; returns a temporary password to hand over
+// @access  Private (Admin)
+exports.resetUserPassword = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const newPassword = req.body.newPassword && String(req.body.newPassword).length >= 8
+      ? String(req.body.newPassword)
+      : tempPassword();
+    user.password = newPassword;
+    user.mustChangePassword = true;
+    await user.save();
+    logAudit(req, 'user.reset_password', { entity: 'User', entityId: user._id, summary: `Reset password for ${user.userCustomId}` });
+    res.status(200).json({
+      success: true,
+      message: `Password reset for ${user.fullName}. They will be asked to change it after logging in.`,
+      temporaryPassword: newPassword
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ================= BULK IMPORT ================= //
+
+// @desc    Create many student accounts at once (from a CSV parsed in the browser)
+// @access  Private (Admin)
+// body: { students: [{ userCustomId, fullName, email, password?, contactNo? }],
+//         enrollment?: { program, yearLevel, section, subjects: [ids] } }
+exports.bulkImportStudents = async (req, res) => {
+  try {
+    const { students, enrollment } = req.body;
+    if (!Array.isArray(students) || students.length === 0) {
+      return res.status(400).json({ success: false, message: 'No students to import.' });
+    }
+    if (students.length > 500) {
+      return res.status(400).json({ success: false, message: 'Import at most 500 students at a time.' });
+    }
+
+    const enroll = enrollment && enrollment.section
+      ? {
+          isEnrolled: true,
+          program: enrollment.program || null,
+          yearLevel: enrollment.yearLevel || null,
+          section: enrollment.section,
+          enrolledSubjects: Array.isArray(enrollment.subjects) ? enrollment.subjects : []
+        }
+      : {};
+
+    const results = [];
+    for (const [i, row] of students.entries()) {
+      const userCustomId = String(row.userCustomId || '').trim();
+      const fullName = String(row.fullName || '').trim();
+      const email = String(row.email || '').trim().toLowerCase();
+      if (!userCustomId || !fullName || !email) {
+        results.push({ row: i + 2, userCustomId, status: 'SKIPPED', reason: 'Missing ID, name or email' });
+        continue;
+      }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        results.push({ row: i + 2, userCustomId, status: 'SKIPPED', reason: 'Invalid email' });
+        continue;
+      }
+      // eslint-disable-next-line no-await-in-loop
+      const exists = await User.findOne({ $or: [{ email }, { userCustomId }] }).select('_id');
+      if (exists) {
+        results.push({ row: i + 2, userCustomId, status: 'SKIPPED', reason: 'ID or email already exists' });
+        continue;
+      }
+      const password = row.password && String(row.password).length >= 8 ? String(row.password) : tempPassword();
+      // eslint-disable-next-line no-await-in-loop
+      await User.create({
+        userCustomId, fullName, email, password, role: 'STUDENT',
+        contactNo: row.contactNo || undefined,
+        mustChangePassword: true,
+        ...enroll
+      });
+      results.push({ row: i + 2, userCustomId, fullName, status: 'CREATED', temporaryPassword: password });
+    }
+
+    const created = results.filter((r) => r.status === 'CREATED').length;
+    logAudit(req, 'user.bulk_import', {
+      entity: 'User',
+      summary: `Imported ${created} of ${students.length} students${enroll.section ? ` into ${enroll.section}` : ''}`
+    });
+    res.status(200).json({ success: true, created, skipped: students.length - created, results });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ================= AUDIT LOG ================= //
+
+// @desc    Recent audit log entries (newest first)
+// @access  Private (Admin)
+exports.getAuditLogs = async (req, res) => {
+  try {
+    const { action, limit = 200, before } = req.query;
+    const query = {};
+    if (action) query.action = new RegExp(`^${String(action).replace(/[^a-z_.]/gi, '')}`);
+    if (before) query.createdAt = { $lt: new Date(before) };
+    const logs = await AuditLog.find(query)
+      .sort({ createdAt: -1 })
+      .limit(Math.min(Number(limit) || 200, 500));
+    res.status(200).json({ success: true, data: logs });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

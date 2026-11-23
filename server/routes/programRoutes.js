@@ -7,6 +7,8 @@ const {
   deleteProgram,
   createSubject, 
   getSubjects,
+  updateSubject,
+  deleteSubject,
   createEnrollmentKey,
   getEnrollmentKeys,
   deleteEnrollmentKey,
@@ -31,6 +33,10 @@ router.route('/programs/:id')
 router.route('/subjects')
   .get(protect, getSubjects)
   .post(protect, authorize('ADMIN'), createSubject);
+
+router.route('/subjects/:id')
+  .put(protect, authorize('ADMIN'), updateSubject)
+  .delete(protect, authorize('ADMIN'), deleteSubject);
 
 // Enrollment Keys Routes (Admin)
 router.route('/enrollment-keys')

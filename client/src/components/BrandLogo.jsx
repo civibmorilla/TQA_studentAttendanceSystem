@@ -20,9 +20,9 @@ export default function BrandLogo({ role }) {
       <div>
         <h1 className="font-black text-gray-900 text-lg leading-tight tracking-tight uppercase">ClassPulse</h1>
         <div className="flex items-center gap-1.5 mt-0.5">
-          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">by XI Labs</span>
+          <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">by XI Labs</span>
           <span className="text-gray-300">•</span>
-          <span className="text-[10px] text-gray-500 font-medium">{getRoleBadge()}</span>
+          <span className="text-xs text-gray-500 font-medium">{getRoleBadge()}</span>
         </div>
       </div>
     </div>

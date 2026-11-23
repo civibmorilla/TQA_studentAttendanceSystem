@@ -21,13 +21,19 @@ const UserSchema = new mongoose.Schema({
   section: { type: String, default: null },
   enrolledSubjects: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Subject' }],
   isEnrolled: { type: Boolean, default: false },
-  enrollmentKey: { type: String, default: null }
+  enrollmentKey: { type: String, default: null },
+  // RA 10173: when the user agreed to the privacy notice (null for admin-created accounts)
+  privacyConsentAt: { type: Date, default: null },
+  // Set when an admin resets the password, so the user is asked to change it
+  mustChangePassword: { type: Boolean, default: false }
 }, { timestamps: true });
 
 // Hash password before saving to the database
-UserSchema.pre('save', async function(next) {
+UserSchema.pre('save', async function() {
+  // BUGFIX: without `return`, every save() re-hashed the already-hashed password,
+  // locking the user out after any profile/enrollment update.
   if (!this.isModified('password')) {
-    next();
+    return;
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);

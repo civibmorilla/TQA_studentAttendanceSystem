@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import API from '../services/api';
+import { useToast } from '../components/Toast';
 
 export default function AdminAccounts() {
+  const toast = useToast();
+  const [resetResult, setResetResult] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -70,7 +73,7 @@ export default function AdminAccounts() {
         showNotification(`Account for "${user.fullName}" has been ${newStatus ? 'reactivated' : 'deactivated'}.`);
       }
     } catch (err) {
-      alert(err.response?.data?.message || `Failed to ${actionText} user account.`);
+      toast.error(err.response?.data?.message || `Failed to ${actionText} user account.`);
     }
   };
 
@@ -87,7 +90,20 @@ export default function AdminAccounts() {
         showNotification(`User account "${user.fullName}" has been permanently removed.`);
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete user.');
+      toast.error(err.response?.data?.message || 'Failed to delete user.');
+    }
+  };
+
+  // Admin password reset: shows a one-time temporary password to hand to the user
+  const handleResetPassword = async (user) => {
+    if (!window.confirm(`Reset the password for "${user.fullName}" (${user.userCustomId})? They will get a temporary password and must change it at their next login.`)) {
+      return;
+    }
+    try {
+      const res = await API.put(`/auth/users/${user._id}/password`, {});
+      setResetResult({ name: user.fullName, id: user.userCustomId, password: res.data.temporaryPassword });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to reset password.');
     }
   };
 
@@ -139,7 +155,7 @@ export default function AdminAccounts() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Account Management</h1>
-          <p className="text-xs text-slate-500 mt-1">Manage system accounts, status activation, and roles.</p>
+          <p className="text-sm text-slate-500 mt-1">Manage system accounts, status activation, and roles.</p>
         </div>
         <button
           onClick={() => {
@@ -155,7 +171,7 @@ export default function AdminAccounts() {
             setModalError('');
             setIsModalOpen(true);
           }}
-          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 flex items-center gap-2 transition"
+          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-md shadow-blue-600/20 flex items-center gap-2 transition"
         >
           <span>👤+</span>
           <span>Create New User</span>
@@ -163,7 +179,7 @@ export default function AdminAccounts() {
       </div>
 
       {notification && (
-        <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl flex items-center justify-between">
+        <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-bold rounded-xl flex items-center justify-between">
           <span>✅ {notification}</span>
           <button onClick={() => setNotification('')} className="text-emerald-600 hover:text-emerald-900 font-bold">✕</button>
         </div>
@@ -174,7 +190,7 @@ export default function AdminAccounts() {
         <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
           <div>
             <h3 className="text-lg font-bold text-slate-800">System Users Directory</h3>
-            <p className="text-xs text-slate-500 mt-1">Total {users.length} registered accounts across all roles.</p>
+            <p className="text-sm text-slate-500 mt-1">Total {users.length} registered accounts across all roles.</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -184,14 +200,14 @@ export default function AdminAccounts() {
               placeholder="Search name, ID, or email..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="px-4 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-500/20 w-64 bg-white"
+              className="px-4 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 w-64 bg-white"
             />
 
             {/* Role Filter */}
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white font-medium text-slate-700"
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none bg-white font-medium text-slate-700"
             >
               <option value="ALL">All Roles</option>
               <option value="STUDENT">Student</option>
@@ -203,7 +219,7 @@ export default function AdminAccounts() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white font-medium text-slate-700"
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none bg-white font-medium text-slate-700"
             >
               <option value="ALL">All Status</option>
               <option value="ACTIVE">Active Only</option>
@@ -214,13 +230,13 @@ export default function AdminAccounts() {
 
         <div className="overflow-x-auto">
           {loading ? (
-            <p className="text-xs text-slate-400 py-8 text-center">Loading users from database...</p>
+            <p className="text-sm text-slate-400 py-8 text-center">Loading users from database...</p>
           ) : filteredUsers.length === 0 ? (
-            <p className="text-xs text-slate-400 py-8 text-center">No matching users found.</p>
+            <p className="text-sm text-slate-400 py-8 text-center">No matching users found.</p>
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 text-[11px] font-bold text-slate-400 uppercase border-b border-slate-100">
+                <tr className="bg-slate-50 text-xs font-bold text-slate-400 uppercase border-b border-slate-100">
                   <th className="py-3 px-4">User ID</th>
                   <th className="py-3 px-4">Full Name</th>
                   <th className="py-3 px-4">Role</th>
@@ -230,7 +246,7 @@ export default function AdminAccounts() {
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+              <tbody className="divide-y divide-slate-100 text-sm font-medium text-slate-700">
                 {filteredUsers.map((user) => {
                   const isActive = user.isActive !== false;
                   return (
@@ -238,7 +254,7 @@ export default function AdminAccounts() {
                       <td className="py-4 px-4 font-mono font-semibold text-slate-600">{user.userCustomId}</td>
                       <td className="py-4 px-4 font-bold text-slate-800">{user.fullName}</td>
                       <td className="py-4 px-4">
-                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold ${
+                        <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${
                           user.role === 'INSTRUCTOR' ? 'bg-indigo-50 text-indigo-600' 
                           : user.role === 'ADMIN' ? 'bg-amber-50 text-amber-700'
                           : 'bg-blue-50 text-blue-600'
@@ -250,25 +266,25 @@ export default function AdminAccounts() {
                       <td className="py-4 px-4">
                         {user.role === 'STUDENT' ? (
                           user.isEnrolled ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                               ✓ Enrolled ({user.section || user.program?.code || 'Active'})
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            <span className="px-2 py-0.5 rounded text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
                               ⚠️ Pending Key
                             </span>
                           )
                         ) : (
-                          <span className="text-[10px] text-slate-400 font-medium">—</span>
+                          <span className="text-xs text-slate-400 font-medium">—</span>
                         )}
                       </td>
                       <td className="py-4 px-4">
                         {isActive ? (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                             ● Active
                           </span>
                         ) : (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200">
                             ○ Deactivated
                           </span>
                         )}
@@ -277,7 +293,7 @@ export default function AdminAccounts() {
                         {user.role === 'STUDENT' && !user.isEnrolled && (
                           <a
                             href="/admin/enrollment-keys"
-                            className="px-2.5 py-1.5 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition shadow-sm font-semibold inline-block text-xs"
+                            className="px-2.5 py-1.5 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition shadow-sm font-semibold inline-block text-sm"
                             title="Issue Enrollment Key for this student"
                           >
                             🔑 Issue Key
@@ -301,6 +317,14 @@ export default function AdminAccounts() {
                             Reactivate
                           </button>
                         )}
+
+                        <button
+                          onClick={() => handleResetPassword(user)}
+                          className="px-3 py-1.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition shadow-sm font-semibold"
+                          title="Give this user a temporary password"
+                        >
+                          Reset password
+                        </button>
 
                         {/* Separate Delete Button */}
                         <button 
@@ -340,19 +364,19 @@ export default function AdminAccounts() {
             </div>
 
             {modalError && (
-              <div className="mb-4 p-3 bg-rose-50 text-rose-600 text-xs font-bold rounded-xl border border-rose-200">
+              <div className="mb-4 p-3 bg-rose-50 text-rose-600 text-sm font-bold rounded-xl border border-rose-200">
                 {modalError}
               </div>
             )}
 
-            <form onSubmit={handleCreateSubmit} className="space-y-3 text-xs">
+            <form onSubmit={handleCreateSubmit} className="space-y-3 text-sm">
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Account Role</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Account Role</label>
                 <select
                   name="role"
                   value={formData.role}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-medium"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-medium"
                 >
                   <option value="STUDENT">Student</option>
                   <option value="INSTRUCTOR">Instructor</option>
@@ -361,7 +385,7 @@ export default function AdminAccounts() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                   ID Number (Username)
                 </label>
                 <input
@@ -371,12 +395,12 @@ export default function AdminAccounts() {
                   value={formData.userCustomId}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Full Name</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Full Name</label>
                 <input
                   type="text"
                   name="fullName"
@@ -384,12 +408,12 @@ export default function AdminAccounts() {
                   value={formData.fullName}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Email Address</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email Address</label>
                 <input
                   type="email"
                   name="email"
@@ -397,12 +421,12 @@ export default function AdminAccounts() {
                   value={formData.email}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Initial Password</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Initial Password</label>
                 <input
                   type="password"
                   name="password"
@@ -410,31 +434,31 @@ export default function AdminAccounts() {
                   value={formData.password}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Contact No (Optional)</label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Contact No (Optional)</label>
                   <input
                     type="text"
                     name="contactNo"
                     placeholder="0917-123-4567"
                     value={formData.contactNo}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Address (Optional)</label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Address (Optional)</label>
                   <input
                     type="text"
                     name="address"
                     placeholder="Bataan, Philippines"
                     value={formData.address}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
               </div>
@@ -459,6 +483,19 @@ export default function AdminAccounts() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {resetResult && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4" role="dialog" aria-labelledby="rp-title">
+            <h2 id="rp-title" className="text-lg font-bold text-slate-800">Temporary password</h2>
+            <p className="text-sm text-slate-600">Give this to <strong>{resetResult.name}</strong> ({resetResult.id}) in person or privately. It is shown only once, and they must change it after logging in.</p>
+            <p className="text-2xl font-mono font-bold tracking-wider text-center p-4 bg-slate-100 rounded-xl select-all">{resetResult.password}</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => { navigator.clipboard?.writeText(resetResult.password); toast.success('Copied.'); }} className="px-4 py-2.5 rounded-lg border border-slate-300 text-sm font-semibold">Copy</button>
+              <button onClick={() => setResetResult(null)} className="px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold">Done</button>
+            </div>
           </div>
         </div>
       )}

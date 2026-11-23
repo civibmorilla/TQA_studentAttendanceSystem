@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
+import { useToast } from '../components/Toast';
 
 export default function AdminPrograms() {
+  const toast = useToast();
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState('');
@@ -115,7 +117,7 @@ export default function AdminPrograms() {
         showNotification(`Program "${prog.code}" was deleted.`);
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete program.');
+      toast.error(err.response?.data?.message || 'Failed to delete program.');
     }
   };
 
@@ -125,11 +127,11 @@ export default function AdminPrograms() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Program Management</h1>
-          <p className="text-xs text-slate-500 mt-1">Configure academic course streams, curricula, and year mappings.</p>
+          <p className="text-sm text-slate-500 mt-1">Configure academic course streams, curricula, and year mappings.</p>
         </div>
         <button
           onClick={handleOpenCreateModal}
-          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 flex items-center gap-2 transition"
+          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-md shadow-blue-600/20 flex items-center gap-2 transition"
         >
           <span>📚+</span>
           <span>Create New Program</span>
@@ -137,7 +139,7 @@ export default function AdminPrograms() {
       </div>
 
       {notification && (
-        <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl flex items-center justify-between">
+        <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-bold rounded-xl flex items-center justify-between">
           <span>✅ {notification}</span>
           <button onClick={() => setNotification('')} className="text-emerald-600 hover:text-emerald-900 font-bold">✕</button>
         </div>
@@ -148,22 +150,22 @@ export default function AdminPrograms() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h3 className="text-lg font-bold text-slate-800">Academic Programs List</h3>
-            <p className="text-xs text-slate-500 mt-1">Total {programs.length} degree programs recognized in the institution.</p>
+            <p className="text-sm text-slate-500 mt-1">Total {programs.length} degree programs recognized in the institution.</p>
           </div>
         </div>
 
         <div className="overflow-x-auto">
           {loading ? (
-            <p className="text-xs text-slate-400 py-8 text-center">Loading programs from database...</p>
+            <p className="text-sm text-slate-400 py-8 text-center">Loading programs from database...</p>
           ) : programs.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-sm font-bold text-slate-700">No academic programs found.</p>
-              <p className="text-xs text-slate-400 mt-1">Click "Create New Program" above to register degree offerings.</p>
+              <p className="text-sm text-slate-400 mt-1">Click "Create New Program" above to register degree offerings.</p>
             </div>
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 text-[11px] font-bold text-slate-400 uppercase border-b border-slate-100">
+                <tr className="bg-slate-50 text-xs font-bold text-slate-400 uppercase border-b border-slate-100">
                   <th className="py-3 px-4">Program Code</th>
                   <th className="py-3 px-4">Program Name</th>
                   <th className="py-3 px-4">Year Levels</th>
@@ -171,7 +173,7 @@ export default function AdminPrograms() {
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+              <tbody className="divide-y divide-slate-100 text-sm font-medium text-slate-700">
                 {programs.map((prog) => (
                   <tr key={prog._id} className="hover:bg-slate-50/50 transition">
                     <td className="py-4 px-4 font-bold text-blue-600 font-mono">{prog.code}</td>
@@ -181,13 +183,13 @@ export default function AdminPrograms() {
                     <td className="py-4 px-4 text-right space-x-2">
                       <button
                         onClick={() => handleOpenEditModal(prog)}
-                        className="px-3 py-1.5 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg text-xs font-semibold shadow-sm transition"
+                        className="px-3 py-1.5 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-semibold shadow-sm transition"
                       >
                         ✏️ Edit
                       </button>
                       <button
                         onClick={() => handleDeleteProgram(prog)}
-                        className="px-3 py-1.5 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold shadow-sm transition"
+                        className="px-3 py-1.5 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg text-sm font-semibold shadow-sm transition"
                       >
                         Delete
                       </button>
@@ -217,14 +219,14 @@ export default function AdminPrograms() {
             </div>
 
             {modalError && (
-              <div className="mb-4 p-3 bg-rose-50 text-rose-600 text-xs font-bold rounded-xl border border-rose-200">
+              <div className="mb-4 p-3 bg-rose-50 text-rose-600 text-sm font-bold rounded-xl border border-rose-200">
                 {modalError}
               </div>
             )}
 
-            <form onSubmit={handleModalSubmit} className="space-y-4 text-xs">
+            <form onSubmit={handleModalSubmit} className="space-y-4 text-sm">
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                   Program Code
                 </label>
                 <input
@@ -234,12 +236,12 @@ export default function AdminPrograms() {
                   value={formData.code}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-mono font-semibold"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-mono font-semibold"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                   Full Program Name
                 </label>
                 <input
@@ -249,13 +251,13 @@ export default function AdminPrograms() {
                   value={formData.name}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                     Year Levels
                   </label>
                   <input
@@ -266,12 +268,12 @@ export default function AdminPrograms() {
                     value={formData.yearLevels}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                     Sections Count Limit
                   </label>
                   <input
@@ -282,7 +284,7 @@ export default function AdminPrograms() {
                     value={formData.sectionsCount}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
               </div>

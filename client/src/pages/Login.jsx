@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import API from '../services/api';
+import { useToast } from '../components/Toast';
 
 export default function Login() {
   const navigate = useNavigate();
+  const toast = useToast();
+  const sessionExpired = new URLSearchParams(window.location.search).get('expired') === '1';
 
   // The role state must exactly match the database enums
   const [role, setRole] = useState('STUDENT');
@@ -24,6 +27,8 @@ export default function Login() {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('userName', response.data.name);
         localStorage.setItem('userRole', response.data.role);
+        if (response.data.mustChangePassword) localStorage.setItem('mustChangePassword', '1');
+        else localStorage.removeItem('mustChangePassword');
 
         // Route dynamically based on the verified role from the database
         if (response.data.role === 'STUDENT') navigate('/student/dashboard');
@@ -31,7 +36,7 @@ export default function Login() {
         if (response.data.role === 'ADMIN') navigate('/admin/dashboard');
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Login failed. Check credentials.');
+      toast.error(err.response?.data?.message || 'Login failed. Check credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -47,12 +52,18 @@ export default function Login() {
             </svg>
           </div>
           <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase">CLASSPULSE</h2>
-          <p className="text-xs font-semibold text-slate-500 italic mt-0.5">Student Attendance Management & Tracking System</p>
-          <p className="text-[11px] font-bold text-blue-600 mt-1 uppercase tracking-wider">by XI Labs</p>
+          <p className="text-sm font-semibold text-slate-500 italic mt-0.5">Student Attendance Management & Tracking System</p>
+          <p className="text-xs font-bold text-blue-600 mt-1 uppercase tracking-wider">by XI Labs</p>
         </div>
 
+        {sessionExpired && (
+          <p className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm font-semibold">
+            Your session ended. Please log in again.
+          </p>
+        )}
+
         {/* Role Selector Tabs - Crucial for passing the correct role to the backend */}
-        <div className="flex justify-between bg-slate-100 p-1 rounded-xl mb-6 text-xs font-semibold">
+        <div className="flex justify-between bg-slate-100 p-1 rounded-xl mb-6 text-sm font-semibold">
           <button
             type="button"
             onClick={() => setRole('STUDENT')}
@@ -78,7 +89,7 @@ export default function Login() {
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">ID Number</label>
+            <label className="block text-sm font-semibold text-slate-500 mb-1 uppercase">ID Number</label>
             <input
               type="text"
               value={username}
@@ -90,7 +101,7 @@ export default function Login() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Password</label>
+            <label className="block text-sm font-semibold text-slate-500 mb-1 uppercase">Password</label>
             <input
               type="password"
               value={password}
@@ -110,7 +121,7 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="text-center text-xs text-slate-500 mt-6">
+        <p className="text-center text-sm text-slate-500 mt-6">
           Don't have an account? <Link to="/register" className="text-blue-600 font-semibold hover:underline">Create one</Link>
         </p>
       </div>

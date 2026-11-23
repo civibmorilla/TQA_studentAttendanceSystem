@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import API from '../services/api';
+import { useToast } from '../components/Toast';
 
 export default function Register() {
     const navigate = useNavigate();
+    const toast = useToast();
+    const [consent, setConsent] = useState(false);
     const [formData, setFormData] = useState({
         userCustomId: '',
         fullName: '',
@@ -26,10 +29,10 @@ export default function Register() {
 
         try {
             // Send registration data to the Node/Express backend
-            const response = await API.post('/auth/register', formData);
+            const response = await API.post('/auth/register', { ...formData, privacyConsent: consent });
 
             if (response.data.success) {
-                alert('Account created successfully! Please log in.');
+                toast.success('Account created! You can now log in.');
                 navigate('/login');
             }
         } catch (err) {
@@ -49,19 +52,19 @@ export default function Register() {
                         </svg>
                     </div>
                     <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">CLASSPULSE</h2>
-                    <p className="text-xs font-semibold text-slate-500 italic mt-0.5">Student Attendance Management & Tracking System</p>
-                    <p className="text-[10px] font-bold text-blue-600 mt-1 uppercase tracking-wider">by XI Labs</p>
+                    <p className="text-sm font-semibold text-slate-500 italic mt-0.5">Student Attendance Management & Tracking System</p>
+                    <p className="text-xs font-bold text-blue-600 mt-1 uppercase tracking-wider">by XI Labs</p>
                 </div>
 
                 {error && (
-                    <div className="mb-4 p-3 bg-rose-50 text-rose-600 text-xs font-bold rounded-lg border border-rose-200">
+                    <div className="mb-4 p-3 bg-rose-50 text-rose-600 text-sm font-bold rounded-lg border border-rose-200">
                         {error}
                     </div>
                 )}
 
                 <form onSubmit={handleRegister} className="space-y-4">
                     <div>
-                        <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Select Role</label>
+                        <label className="block text-sm font-semibold text-slate-500 mb-1 uppercase">Select Role</label>
                         <select
                             name="role"
                             value={formData.role}
@@ -69,13 +72,14 @@ export default function Register() {
                             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 text-sm bg-white"
                         >
                             <option value="STUDENT">Student</option>
-                            <option value="INSTRUCTOR">Instructor</option>
-                            <option value="ADMIN">System Admin</option>
+                            {/* Instructor accounts are created by an admin. "System Admin" only works
+                                on a brand-new installation that has no admin yet. */}
+                            <option value="ADMIN">System Admin (first-time setup only)</option>
                         </select>
                     </div>
 
                     <div>
-                        <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">ID Number (Username)</label>
+                        <label className="block text-sm font-semibold text-slate-500 mb-1 uppercase">ID Number (Username)</label>
                         <input
                             type="text"
                             name="userCustomId"
@@ -88,7 +92,7 @@ export default function Register() {
                     </div>
 
                     <div>
-                        <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Full Name</label>
+                        <label className="block text-sm font-semibold text-slate-500 mb-1 uppercase">Full Name</label>
                         <input
                             type="text"
                             name="fullName"
@@ -101,7 +105,7 @@ export default function Register() {
                     </div>
 
                     <div>
-                        <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Email</label>
+                        <label className="block text-sm font-semibold text-slate-500 mb-1 uppercase">Email</label>
                         <input
                             type="email"
                             name="email"
@@ -114,7 +118,7 @@ export default function Register() {
                     </div>
 
                     <div>
-                        <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Password</label>
+                        <label className="block text-sm font-semibold text-slate-500 mb-1 uppercase">Password</label>
                         <input
                             type="password"
                             name="password"
@@ -128,10 +132,10 @@ export default function Register() {
                     {formData.role === 'STUDENT' && (
                         <div>
                             <div className="flex justify-between items-center mb-1">
-                                <label className="block text-xs font-semibold text-slate-500 uppercase">
+                                <label className="block text-sm font-semibold text-slate-500 uppercase">
                                     Enrollment Key (Optional)
                                 </label>
-                                <span className="text-[10px] text-slate-400">Issued by admin</span>
+                                <span className="text-xs text-slate-400">Issued by admin</span>
                             </div>
                             <input
                                 type="text"
@@ -144,16 +148,30 @@ export default function Register() {
                         </div>
                     )}
 
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-600 space-y-2">
+                        <p className="font-bold text-slate-700">Privacy notice (Data Privacy Act of 2012, RA 10173)</p>
+                        <p>
+                            We collect your ID number, name, email, contact details, class enrollment and attendance records only to
+                            take and report class attendance. They are visible to you, your instructors and school administrators,
+                            are not shared outside the school, and are kept only as long as school record rules require. You can
+                            ask the school administrator to see, correct or delete your data.
+                        </p>
+                        <label className="flex items-start gap-2 text-sm text-slate-700 font-medium">
+                            <input type="checkbox" required checked={consent} onChange={(e) => setConsent(e.target.checked)} className="w-5 h-5 mt-0.5 shrink-0" />
+                            <span>I have read the privacy notice and agree to the processing of my data for attendance purposes.</span>
+                        </label>
+                    </div>
+
                     <button
                         type="submit"
-                        disabled={isLoading}
+                        disabled={isLoading || !consent}
                         className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-xl transition shadow-lg shadow-blue-600/20 text-sm"
                     >
                         {isLoading ? 'Creating Account...' : 'Register'}
                     </button>
                 </form>
 
-                <p className="text-center text-xs text-slate-500 mt-6">
+                <p className="text-center text-sm text-slate-500 mt-6">
                     Already have an account? <Link to="/login" className="text-blue-600 font-semibold hover:underline">Log in here</Link>
                 </p>
             </div>

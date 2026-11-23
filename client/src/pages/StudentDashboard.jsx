@@ -52,11 +52,21 @@ export default function StudentDashboard() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Welcome back, {userName}</h1>
-          <p className="text-xs text-slate-500">Track your attendance and class schedules in real-time.</p>
+          <p className="text-sm text-slate-500">Track your attendance and class schedules in real-time.</p>
         </div>
-        <span className="text-xs font-semibold bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg shadow-sm">
-          {currentDate}
-        </span>
+        <div className="flex items-center gap-2">
+          {isEnrolled && (
+            <Link
+              to="/student/check-in"
+              className="text-sm font-bold bg-blue-600 text-white px-4 py-1.5 rounded-lg shadow-sm hover:bg-blue-700"
+            >
+              📷 Check in to class
+            </Link>
+          )}
+          <span className="text-sm font-semibold bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg shadow-sm">
+            {currentDate}
+          </span>
+        </div>
       </div>
 
       {/* Pending Enrollment Banner */}
@@ -65,15 +75,15 @@ export default function StudentDashboard() {
           <div className="flex items-center gap-3">
             <span className="text-xl">🔑</span>
             <div>
-              <h4 className="text-xs font-bold">Enrollment Key Required</h4>
-              <p className="text-[11px] text-amber-700">
+              <h4 className="text-sm font-bold">Enrollment Key Required</h4>
+              <p className="text-xs text-amber-700">
                 You have not yet unlocked your courses. Please enter the enrollment key issued by your administrator to assign your program and subjects.
               </p>
             </div>
           </div>
           <Link
             to="/student/subjects"
-            className="text-xs bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl font-bold shadow-sm transition"
+            className="text-sm bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl font-bold shadow-sm transition"
           >
             Enter Key Now →
           </Link>
@@ -86,15 +96,15 @@ export default function StudentDashboard() {
           <div className="flex items-center gap-3">
             <span className="text-xl">⚠️</span>
             <div>
-              <h4 className="text-xs font-bold">Attendance Rate Notice</h4>
-              <p className="text-[11px] text-rose-600">
+              <h4 className="text-sm font-bold">Attendance Rate Notice</h4>
+              <p className="text-xs text-rose-600">
                 Your attendance rate is currently <strong>{stats.rate}%</strong>, below the 80.0% institutional threshold.
               </p>
             </div>
           </div>
           <Link
             to="/student/attendance"
-            className="text-xs bg-rose-100 hover:bg-rose-200 text-rose-800 px-3 py-1 rounded-full font-bold transition"
+            className="text-sm bg-rose-100 hover:bg-rose-200 text-rose-800 px-3 py-1 rounded-full font-bold transition"
           >
             View Details
           </Link>
@@ -104,25 +114,25 @@ export default function StudentDashboard() {
       {/* Metrics Cards */}
       <div className="grid grid-cols-4 gap-4 mb-8">
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 uppercase">Total Classes</span>
+          <span className="text-xs font-bold text-slate-400 uppercase">Total Classes</span>
           <div className="text-3xl font-bold text-slate-800 mt-2">
             {loading ? '—' : stats.total}
           </div>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 uppercase">Present</span>
+          <span className="text-xs font-bold text-slate-400 uppercase">Present</span>
           <div className="text-3xl font-bold text-emerald-600 mt-2">
             {loading ? '—' : stats.present}
           </div>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 uppercase">Late</span>
+          <span className="text-xs font-bold text-slate-400 uppercase">Late</span>
           <div className="text-3xl font-bold text-amber-500 mt-2">
             {loading ? '—' : stats.late}
           </div>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 uppercase">Absent</span>
+          <span className="text-xs font-bold text-slate-400 uppercase">Absent</span>
           <div className="text-3xl font-bold text-rose-500 mt-2">
             {loading ? '—' : stats.absent}
           </div>
@@ -134,39 +144,41 @@ export default function StudentDashboard() {
         <div className="col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-sm font-bold text-slate-800">Recent Attendance Records</h2>
-            <Link to="/student/attendance" className="text-xs font-semibold text-blue-600 hover:underline">
+            <Link to="/student/attendance" className="text-sm font-semibold text-blue-600 hover:underline">
               View All
             </Link>
           </div>
 
           {loading ? (
-            <p className="text-xs text-slate-400 py-6 text-center">Loading attendance records...</p>
+            <p className="text-sm text-slate-400 py-6 text-center">Loading attendance records...</p>
           ) : logs.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-xs text-slate-400">No attendance records logged yet.</p>
-              <p className="text-[11px] text-slate-300 mt-1">Records appear here once instructors submit daily class attendance.</p>
+              <p className="text-sm text-slate-400">No attendance records logged yet.</p>
+              <p className="text-xs text-slate-300 mt-1">Records appear here once instructors submit daily class attendance.</p>
             </div>
           ) : (
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-slate-50 text-[11px] font-bold text-slate-400 uppercase border-b border-slate-100">
+                <tr className="bg-slate-50 text-xs font-bold text-slate-400 uppercase border-b border-slate-100">
                   <th className="py-3 px-4">Date</th>
                   <th className="py-3 px-4">Subject</th>
                   <th className="py-3 px-4">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+              <tbody className="divide-y divide-slate-100 text-sm font-medium text-slate-700">
                 {logs.slice(0, 5).map((item) => (
                   <tr key={item._id}>
                     <td className="py-3.5 px-4 font-semibold text-slate-800">{item.date}</td>
                     <td className="py-3.5 px-4 font-bold">{item.subjectId?.title || 'Subject'}</td>
                     <td className="py-3.5 px-4">
                       <span
-                        className={`px-3 py-1 rounded-full text-[11px] font-bold ${
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${
                           item.status === 'PRESENT'
                             ? 'bg-emerald-100 text-emerald-700'
                             : item.status === 'LATE'
                             ? 'bg-amber-100 text-amber-700'
+                            : item.status === 'EXCUSED'
+                            ? 'bg-sky-100 text-sky-700'
                             : 'bg-rose-100 text-rose-700'
                         }`}
                       >
@@ -184,25 +196,25 @@ export default function StudentDashboard() {
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-sm font-bold text-slate-800">My Classes</h2>
-            <Link to="/student/subjects" className="text-xs font-semibold text-blue-600 hover:underline">
+            <Link to="/student/subjects" className="text-sm font-semibold text-blue-600 hover:underline">
               View All
             </Link>
           </div>
 
           {loading ? (
-            <p className="text-xs text-slate-400 py-6 text-center">Loading subjects...</p>
+            <p className="text-sm text-slate-400 py-6 text-center">Loading subjects...</p>
           ) : subjects.length === 0 ? (
-            <p className="text-xs text-slate-400 py-6 text-center">No enrolled subjects found.</p>
+            <p className="text-sm text-slate-400 py-6 text-center">No enrolled subjects found.</p>
           ) : (
             <div className="space-y-3">
               {subjects.slice(0, 4).map((sub) => (
                 <div key={sub._id} className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-bold text-blue-600 uppercase">{sub.code}</span>
-                    <span className="text-[10px] text-slate-400 font-medium">{sub.room}</span>
+                    <span className="text-xs font-bold text-blue-600 uppercase">{sub.code}</span>
+                    <span className="text-xs text-slate-400 font-medium">{sub.room}</span>
                   </div>
-                  <h4 className="text-xs font-bold text-slate-800 mt-1">{sub.title}</h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5">{sub.schedule}</p>
+                  <h4 className="text-sm font-bold text-slate-800 mt-1">{sub.title}</h4>
+                  <p className="text-xs text-slate-500 mt-0.5">{sub.schedule}</p>
                 </div>
               ))}
             </div>

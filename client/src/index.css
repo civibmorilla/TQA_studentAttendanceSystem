@@ -1,1 +1,17 @@
 @import "tailwindcss";
+
+/* Accessibility (WCAG 2.2): a clearly visible keyboard focus ring everywhere */
+:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Print: only the printable area (used by the QR ID cards page) */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white !important; }
+  main { overflow: visible !important; }
+  .print-area { padding: 0 !important; }
+  .id-card { break-inside: avoid; }
+}

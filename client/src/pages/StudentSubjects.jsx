@@ -72,7 +72,7 @@ export default function StudentSubjects() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">My Enrolled Subjects</h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-sm text-slate-400 mt-1">
             {loading
               ? 'Loading course status...'
               : isEnrolled
@@ -83,7 +83,7 @@ export default function StudentSubjects() {
 
         {programInfo && (
           <div className="flex items-center gap-2">
-            <span className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold border border-blue-100 shadow-sm">
+            <span className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-xl text-sm font-bold border border-blue-100 shadow-sm">
               {programInfo.program?.code} • {programInfo.section}
             </span>
           </div>
@@ -91,20 +91,20 @@ export default function StudentSubjects() {
       </div>
 
       {successMsg && (
-        <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl flex items-center justify-between shadow-sm">
+        <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-bold rounded-xl flex items-center justify-between shadow-sm">
           <span>🎉 {successMsg}</span>
           <button onClick={() => setSuccessMsg('')} className="text-emerald-600 font-bold">✕</button>
         </div>
       )}
 
       {error && (
-        <div className="p-4 mb-6 bg-rose-50 border border-rose-200 text-rose-600 text-xs rounded-xl">
+        <div className="p-4 mb-6 bg-rose-50 border border-rose-200 text-rose-600 text-sm rounded-xl">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="p-12 text-center text-xs text-slate-400">Loading enrolled subjects...</div>
+        <div className="p-12 text-center text-sm text-slate-400">Loading enrolled subjects...</div>
       ) : !isEnrolled ? (
         /* Enrollment Key Redemption Card */
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 max-w-2xl mx-auto my-8">
@@ -113,21 +113,21 @@ export default function StudentSubjects() {
           </div>
           <div className="text-center mb-6">
             <h2 className="text-lg font-bold text-slate-800">Enrollment Key Required</h2>
-            <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+            <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
               You are currently registered as a student, but your degree program and subjects have not yet been unlocked. 
               The School Administrator generates an <strong>Enrollment Key</strong> that assigns your academic program, section, and subjects.
             </p>
           </div>
 
           {keyError && (
-            <div className="mb-4 p-3 bg-rose-50 text-rose-600 text-xs font-bold rounded-xl border border-rose-200 text-center">
+            <div className="mb-4 p-3 bg-rose-50 text-rose-600 text-sm font-bold rounded-xl border border-rose-200 text-center">
               {keyError}
             </div>
           )}
 
           <form onSubmit={handleRedeemKey} className="space-y-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 text-center">
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1 text-center">
                 Enter Your Enrollment Key
               </label>
               <input
@@ -143,13 +143,13 @@ export default function StudentSubjects() {
             <button
               type="submit"
               disabled={redeeming}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-blue-600/20"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-blue-600/20"
             >
               {redeeming ? 'Verifying & Unlocking Courses...' : 'Redeem Key & Unlock Subjects'}
             </button>
           </form>
 
-          <p className="text-[11px] text-slate-400 text-center mt-4">
+          <p className="text-xs text-slate-400 text-center mt-4">
             Don't have an enrollment key? Request one from your Department Head or School Administrator.
           </p>
         </div>
@@ -158,7 +158,7 @@ export default function StudentSubjects() {
         <div className="bg-white p-12 rounded-2xl border border-slate-100 shadow-sm text-center">
           <div className="text-3xl mb-3">📚</div>
           <h3 className="text-sm font-bold text-slate-800">You are enrolled in {programInfo?.program?.name || 'Program'}</h3>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-sm text-slate-400 mt-1">
             Section: {programInfo?.section}. No specific subjects have been scheduled under your section yet.
           </p>
         </div>
@@ -169,17 +169,17 @@ export default function StudentSubjects() {
             <div key={course._id} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition">
               <div>
                 <div className="flex justify-between items-start mb-2">
-                  <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">{course.code}</span>
-                  <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 font-bold text-xs">
+                  <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">{course.code}</span>
+                  <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 font-bold text-sm">
                     📖
                   </div>
                 </div>
                 <h3 className="text-xl font-bold text-slate-800 mb-1">{course.title}</h3>
-                <p className="text-[11px] text-slate-400 mb-4">
+                <p className="text-xs text-slate-400 mb-4">
                   Section: <span className="font-semibold text-slate-600">{course.section}</span> • Year: <span className="font-semibold text-slate-600">{course.yearLevel}</span>
                 </p>
 
-                <div className="space-y-1.5 text-xs text-slate-500 mb-6">
+                <div className="space-y-1.5 text-sm text-slate-500 mb-6">
                   <p><strong className="text-slate-700 font-semibold">Instructor:</strong> {course.instructor?.fullName || 'TBA'}</p>
                   <p><strong className="text-slate-700 font-semibold">Schedule:</strong> {course.schedule}</p>
                   <p><strong className="text-slate-700 font-semibold">Room:</strong> {course.room}</p>
@@ -188,7 +188,7 @@ export default function StudentSubjects() {
 
               <Link
                 to={`/student/attendance?subjectId=${course._id}&title=${encodeURIComponent(course.title)}&section=${encodeURIComponent(course.section)}`}
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl text-center shadow-md shadow-blue-600/20 transition block"
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl text-center shadow-md shadow-blue-600/20 transition block"
               >
                 View Attendance Record
               </Link>

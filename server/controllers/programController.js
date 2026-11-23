@@ -2,6 +2,7 @@ const Program = require('../models/Program');
 const Subject = require('../models/Subject');
 const User = require('../models/User');
 const EnrollmentKey = require('../models/EnrollmentKey');
+const { logAudit } = require('../utils/audit');
 
 // ================= PROGRAMS ================= //
 
@@ -65,6 +66,7 @@ exports.deleteProgram = async (req, res) => {
 exports.createSubject = async (req, res) => {
   try {
     const subject = await Subject.create(req.body);
+    logAudit(req, 'subject.create', { entity: 'Subject', entityId: subject._id, summary: `Created subject ${subject.code} (${subject.section})` });
     res.status(201).json({ success: true, data: subject });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -79,6 +81,8 @@ exports.getSubjects = async (req, res) => {
     if (req.query.section) query.section = req.query.section;
     if (req.query.instructor) query.instructor = req.query.instructor;
     if (req.query.program) query.program = req.query.program;
+    // Instructors only ever see the classes assigned to them
+    if (req.user.role === 'INSTRUCTOR') query.instructor = req.user._id;
 
     const subjects = await Subject.find(query)
       .populate('program', 'code name')
@@ -308,5 +312,34 @@ exports.assignStudentDirectly = async (req, res) => {
     });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Update a subject (e.g. reassign instructor, change schedule/room)
+// @access  Private (Admin only)
+exports.updateSubject = async (req, res) => {
+  try {
+    const subject = await Subject.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
+      .populate('program', 'code name')
+      .populate('instructor', 'fullName userCustomId');
+    if (!subject) return res.status(404).json({ success: false, message: 'Subject not found' });
+    logAudit(req, 'subject.update', { entity: 'Subject', entityId: subject._id, summary: `Updated subject ${subject.code} (${subject.section})` });
+    res.status(200).json({ success: true, data: subject });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Delete a subject and unlink it from students
+// @access  Private (Admin only)
+exports.deleteSubject = async (req, res) => {
+  try {
+    const subject = await Subject.findByIdAndDelete(req.params.id);
+    if (!subject) return res.status(404).json({ success: false, message: 'Subject not found' });
+    await User.updateMany({ enrolledSubjects: subject._id }, { $pull: { enrolledSubjects: subject._id } });
+    logAudit(req, 'subject.delete', { entity: 'Subject', entityId: subject._id, summary: `Deleted subject ${subject.code} (${subject.section})` });
+    res.status(200).json({ success: true, message: 'Subject deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
