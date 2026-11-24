@@ -27,9 +27,11 @@ exports.registerUser = async (req, res) => {
     let role = req.body.role || 'STUDENT';
     const isAdminCaller = Boolean(req.user && req.user.role === 'ADMIN');
 
-    // Students can't create their own accounts any more: either sign-up is off
-    // (accounts come from the registrar's roster) or it only sends a request.
-    if (role === 'STUDENT' && !isAdminCaller && signupMode() === 'off') {
+    // Nobody creates their own account any more: either sign-up is off
+    // (accounts come from the school) or it only sends a request an admin approves.
+    // Students and instructors can both send a request.
+    const isSelfRequest = !isAdminCaller && (role === 'STUDENT' || role === 'INSTRUCTOR');
+    if (isSelfRequest && signupMode() === 'off') {
       return res.status(403).json({
         success: false,
         message: 'Sign-up is closed. Your account is created by the school administrator; ask them for your login.'
@@ -37,12 +39,13 @@ exports.registerUser = async (req, res) => {
     }
 
     // SECURITY FIX: the public sign-up form used to let anyone create an ADMIN.
-    // Staff accounts (INSTRUCTOR / ADMIN) can now only be created by a logged-in admin,
-    // except for the very first ADMIN (bootstrap of an empty database).
-    if (role !== 'STUDENT') {
+    // ADMIN accounts can only be created by a logged-in admin, except for the very
+    // first ADMIN (bootstrap of an empty database). Instructors may only REQUEST
+    // an account (it stays PENDING until an admin approves it, see below).
+    if (role !== 'STUDENT' && role !== 'INSTRUCTOR') {
       const isBootstrap = role === 'ADMIN' && (await User.countDocuments({ role: 'ADMIN' })) === 0;
       if (!isAdminCaller && !isBootstrap) {
-        return res.status(403).json({ success: false, message: 'Only an administrator can create instructor or admin accounts.' });
+        return res.status(403).json({ success: false, message: 'Only an administrator can create admin accounts.' });
       }
     }
     if (!['STUDENT', 'INSTRUCTOR', 'ADMIN'].includes(role)) role = 'STUDENT';
@@ -56,6 +59,10 @@ exports.registerUser = async (req, res) => {
     if (role === 'STUDENT' && !isValidStudentId(userCustomId)) {
       return res.status(400).json({ success: false, message: studentIdError() });
     }
+    // Employee / faculty IDs: letters, digits and dashes only (e.g. INST-01, FAC-2019-014)
+    if (role === 'INSTRUCTOR' && !/^[A-Za-z0-9-]{3,30}$/.test(userCustomId)) {
+      return res.status(400).json({ success: false, message: 'Employee ID must be 3-30 letters, digits or dashes (e.g. FAC-2019-014).' });
+    }
 
     // RA 10173: people signing themselves up must accept the privacy notice
     const isAdminCreating = req.user && req.user.role === 'ADMIN';
@@ -65,10 +72,10 @@ exports.registerUser = async (req, res) => {
 
     const userExists = await User.findOne({ $or: [{ email }, { userCustomId }] });
     if (userExists) {
-      return res.status(400).json({ success: false, message: 'That student number or email is already registered. If it is yours, use "Forgot password?" on the login page.' });
+      return res.status(400).json({ success: false, message: 'That ID number or email is already registered. If it is yours, use "Forgot password?" on the login page.' });
     }
-    // A student signing themselves up only sends a request; an admin must approve it
-    const needsApproval = role === 'STUDENT' && !isAdminCreating;
+    // A student or instructor signing themselves up only sends a request; an admin must approve it
+    const needsApproval = isSelfRequest;
 
     let enrollmentData = { isEnrolled: false };
 
@@ -123,7 +130,7 @@ exports.registerUser = async (req, res) => {
     }
 
     if (needsApproval) {
-      logAudit(req, 'user.request', { entity: 'User', entityId: user._id, summary: `Account request from ${userCustomId} (${fullName})` });
+      logAudit(req, 'user.request', { entity: 'User', entityId: user._id, summary: `${role === 'INSTRUCTOR' ? 'Instructor' : 'Student'} account request from ${userCustomId} (${fullName})` });
       return res.status(201).json({
         success: true,
         pending: true,

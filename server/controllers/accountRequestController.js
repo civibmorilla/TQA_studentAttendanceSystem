@@ -13,7 +13,7 @@ exports.getSignupMode = async (req, res) => {
   }
 };
 
-// @desc    Student accounts waiting for approval (admin)
+// @desc    Student and instructor accounts waiting for approval (admin)
 // @route   GET /api/v1/auth/account-requests
 exports.getAccountRequests = async (req, res) => {
   try {
@@ -44,9 +44,11 @@ const decide = (status) => async (req, res) => {
     res.status(200).json({
       success: true,
       message: status === 'APPROVED'
-        ? `${user.fullName} can now log in. Enroll them in a class next.`
+        ? (user.role === 'STUDENT'
+          ? `${user.fullName} can now log in. Enroll them in a class next.`
+          : `${user.fullName} can now log in as an instructor. Assign them subjects next.`)
         : `Request from ${user.fullName} was rejected. The account stays blocked.`,
-      data: { _id: user._id, fullName: user.fullName, userCustomId: user.userCustomId, isEnrolled: user.isEnrolled, section: user.section, enrolledSubjects: user.enrolledSubjects }
+      data: { _id: user._id, role: user.role, fullName: user.fullName, userCustomId: user.userCustomId, isEnrolled: user.isEnrolled, section: user.section, enrolledSubjects: user.enrolledSubjects }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

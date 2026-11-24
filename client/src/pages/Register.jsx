@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import API from '../services/api';
 
-// Students don't create their own accounts any more. Depending on the server's SIGNUP_MODE:
-//  - 'approval': this page sends an account REQUEST that an admin approves.
+// Nobody creates their own account any more. Depending on the server's SIGNUP_MODE:
+//  - 'approval': this page sends an account REQUEST (student or instructor) that an admin approves.
 //  - 'off':      this page only explains how to get an account from the school.
 // On a brand-new installation (no admin yet) it sets up the first admin instead.
 const STUDENT_ID_RE = /^\d{4}-\d{5}$/;
+const EMPLOYEE_ID_RE = /^[A-Za-z0-9-]{3,30}$/;
 
 const input =
   'w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 text-sm';
@@ -46,6 +47,7 @@ export default function Register() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [done, setDone] = useState(''); // success message
+  const [role, setRole] = useState('STUDENT'); // who is requesting: STUDENT or INSTRUCTOR
 
   useEffect(() => {
     API.get('/auth/signup-mode')
@@ -54,6 +56,7 @@ export default function Register() {
   }, []);
 
   const firstAdmin = Boolean(config?.needsFirstAdmin);
+  const isInstructor = !firstAdmin && role === 'INSTRUCTOR';
   const example = config?.studentIdExample || '2026-00123';
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -62,7 +65,11 @@ export default function Register() {
     e.preventDefault();
     setError('');
     const id = formData.userCustomId.trim();
-    if (!firstAdmin && !STUDENT_ID_RE.test(id)) {
+    if (isInstructor && !EMPLOYEE_ID_RE.test(id)) {
+      setError('Enter your employee ID: 3-30 letters, digits or dashes (e.g. FAC-2019-014).');
+      return;
+    }
+    if (!firstAdmin && !isInstructor && !STUDENT_ID_RE.test(id)) {
       setError(`Enter your official student number, e.g. ${example} (year, dash, 5 digits).`);
       return;
     }
@@ -81,8 +88,8 @@ export default function Register() {
         fullName: formData.fullName.trim(),
         email: formData.email.trim(),
         password: formData.password,
-        role: firstAdmin ? 'ADMIN' : 'STUDENT',
-        enrollmentKey: firstAdmin ? '' : formData.enrollmentKey,
+        role: firstAdmin ? 'ADMIN' : role,
+        enrollmentKey: firstAdmin || isInstructor ? '' : formData.enrollmentKey,
         privacyConsent: consent
       });
       setDone(res.data.pending ? res.data.message : 'Administrator account created. You can now log in.');
@@ -107,9 +114,19 @@ export default function Register() {
         </div>
         {!firstAdmin && (
           <ol className="text-sm text-slate-600 space-y-2 list-decimal pl-5">
-            <li>The administrator checks your student number and name against the official roster.</li>
-            <li>Once approved, you can log in with your student number and the password you chose.</li>
-            <li>If it's taking long, contact the registrar or your instructor.</li>
+            {isInstructor ? (
+              <>
+                <li>The administrator checks your employee ID and name against the faculty list.</li>
+                <li>Once approved, choose <b>Instructor</b> on the login page and log in with your employee ID and the password you chose.</li>
+                <li>The administrator then assigns your subjects. If it's taking long, contact the school administrator.</li>
+              </>
+            ) : (
+              <>
+                <li>The administrator checks your student number and name against the official roster.</li>
+                <li>Once approved, you can log in with your student number and the password you chose.</li>
+                <li>If it's taking long, contact the registrar or your instructor.</li>
+              </>
+            )}
           </ol>
         )}
         <Link to="/login" className="block w-full py-3 text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition text-sm">
@@ -122,11 +139,12 @@ export default function Register() {
       <div className="space-y-5">
         <h2 className="text-lg font-bold text-slate-800 text-center">Accounts are created by the school</h2>
         <ol className="text-sm text-slate-600 space-y-2 list-decimal pl-5">
-          <li>The registrar adds every enrolled student using their official student number (e.g. {example}).</li>
+          <li>Students: the registrar adds every enrolled student using their official student number (e.g. {example}).</li>
+          <li>Instructors: the school administrator adds faculty accounts using their employee ID.</li>
           <li>You receive a temporary password from the school administrator.</li>
-          <li>Log in with your student number and that password. You will choose your own password right away.</li>
+          <li>Log in with your ID and that password. You will choose your own password right away.</li>
         </ol>
-        <p className="text-sm text-slate-500">Didn't get your login? Contact the registrar or your instructor.</p>
+        <p className="text-sm text-slate-500">Didn't get your login? Contact the school administrator.</p>
         <Link to="/login" className="block w-full py-3 text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition text-sm">
           Back to login
         </Link>
@@ -136,7 +154,9 @@ export default function Register() {
     body = (
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-800">{firstAdmin ? 'Set up the first administrator' : 'Request a student account'}</h2>
+          <h2 className="text-lg font-bold text-slate-800">
+            {firstAdmin ? 'Set up the first administrator' : isInstructor ? 'Request an instructor account' : 'Request a student account'}
+          </h2>
           <p className="text-sm text-slate-500 mt-1">
             {firstAdmin
               ? 'This system has no administrator yet. Create the first admin account; after that, only admins create accounts.'
@@ -144,24 +164,42 @@ export default function Register() {
           </p>
         </div>
 
+        {!firstAdmin && (
+          <div role="radiogroup" aria-label="I am a" className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+            {[['STUDENT', '🎓 Student'], ['INSTRUCTOR', '👩‍🏫 Instructor']].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={role === value}
+                onClick={() => { setRole(value); setError(''); setFormData({ ...formData, userCustomId: '', enrollmentKey: '' }); }}
+                className={`py-2 rounded-lg text-sm font-bold transition ${role === value ? 'bg-white text-blue-700 shadow' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {error && <p role="alert" className="p-3 bg-rose-50 text-rose-700 text-sm font-bold rounded-lg border border-rose-200">{error}</p>}
 
         <div>
           <label htmlFor="rg-id" className="block text-sm font-semibold text-slate-500 mb-1 uppercase">
-            {firstAdmin ? 'Admin ID' : 'Official student number'}
+            {firstAdmin ? 'Admin ID' : isInstructor ? 'Employee ID' : 'Official student number'}
           </label>
           <input
             id="rg-id"
             type="text"
             name="userCustomId"
-            placeholder={firstAdmin ? 'e.g. ADMIN-01' : `e.g. ${example}`}
+            placeholder={firstAdmin ? 'e.g. ADMIN-01' : isInstructor ? 'e.g. FAC-2019-014' : `e.g. ${example}`}
             value={formData.userCustomId}
             onChange={handleChange}
             className={`${input} font-mono`}
             autoComplete="username"
             required
           />
-          {!firstAdmin && <p className="text-xs text-slate-500 mt-1">As printed on your registration form: year, dash, 5 digits.</p>}
+          {isInstructor && <p className="text-xs text-slate-500 mt-1">Your faculty / employee number as issued by the school.</p>}
+          {!firstAdmin && !isInstructor && <p className="text-xs text-slate-500 mt-1">As printed on your registration form: year, dash, 5 digits.</p>}
         </div>
 
         <div>
@@ -186,7 +224,7 @@ export default function Register() {
         </div>
         <p className="text-xs text-slate-500 -mt-2">At least 8 characters.</p>
 
-        {!firstAdmin && (
+        {!firstAdmin && !isInstructor && (
           <div>
             <div className="flex justify-between items-center mb-1">
               <label htmlFor="rg-key" className="block text-sm font-semibold text-slate-500 uppercase">Enrollment key (optional)</label>
@@ -211,7 +249,15 @@ export default function Register() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8 border border-slate-100">
+      <div className="relative bg-white w-full max-w-md rounded-2xl shadow-xl p-8 border border-slate-100">
+        <Link
+          to="/login"
+          aria-label="Close and go back to login"
+          title="Back to login"
+          className="absolute top-3 right-3 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </Link>
         <Brand />
         {body}
         {!done && (

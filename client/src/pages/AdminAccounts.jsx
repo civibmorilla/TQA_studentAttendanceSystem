@@ -50,8 +50,8 @@ export default function AdminAccounts() {
       toast.success(res.data.message);
       fetchAccountRequests();
       fetchUsers();
-      // Next step: put the new student in a class
-      if (!res.data.data.isEnrolled) setEnrollTarget(res.data.data);
+      // Next step: put the new student in a class (instructors get subjects via Programs)
+      if (res.data.data.role === 'STUDENT' && !res.data.data.isEnrolled) setEnrollTarget(res.data.data);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to approve the account.');
     }
@@ -260,7 +260,7 @@ export default function AdminAccounts() {
             🙋 Account requests ({accountRequests.length})
           </h3>
           <p className="text-sm text-blue-900/80 mt-1 mb-4">
-            Approve only students whose student number and name match the official roster. Approved students can log in; you can then enroll them in a class.
+            Approve only people whose ID and name match the official roster (students) or faculty list (instructors). Approved students can log in and you can then enroll them in a class; approved instructors can log in and you can assign them subjects.
           </p>
           <ul className="space-y-3">
             {accountRequests.map((u) => (
@@ -268,6 +268,9 @@ export default function AdminAccounts() {
                 <div className="min-w-0">
                   <p className="font-bold text-slate-800">
                     {u.fullName} <span className="font-mono text-sm text-slate-500">({u.userCustomId})</span>
+                    <span className={`ml-2 align-middle px-2 py-0.5 rounded-full text-xs font-bold ${u.role === 'INSTRUCTOR' ? 'bg-violet-100 text-violet-800' : 'bg-sky-100 text-sky-800'}`}>
+                      {u.role === 'INSTRUCTOR' ? 'Instructor' : 'Student'}
+                    </span>
                   </p>
                   <p className="text-sm text-slate-500">
                     {u.email} · requested {new Date(u.createdAt).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}

@@ -32,7 +32,15 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8 border border-slate-100">
+      <div className="relative bg-white w-full max-w-md rounded-2xl shadow-xl p-8 border border-slate-100">
+        <Link
+          to="/login"
+          aria-label="Close and go back to login"
+          title="Back to login"
+          className="absolute top-3 right-3 w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </Link>
         <div className="text-center mb-6">
           <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/25 mx-auto mb-3 text-xl" aria-hidden="true">
             🔑
