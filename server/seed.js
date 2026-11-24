@@ -1,5 +1,5 @@
-// Creates demo accounts and one class (section DEMO-301) with 4 subjects,
-// all taught by INST-01, with 10 students enrolled in every subject.
+// Creates demo accounts, an active academic term, and one class (section DEMO-301)
+// with 4 subjects, all taught by INST-01, with 10 students enrolled in every subject.
 //
 // Safe to run more than once: existing accounts are kept, but their role,
 // section and subject enrollment are corrected every run.
@@ -13,6 +13,7 @@ const dotenv = require('dotenv');
 const User = require('./models/User');
 const Program = require('./models/Program');
 const Subject = require('./models/Subject');
+const Term = require('./models/Term');
 
 dotenv.config();
 
@@ -51,6 +52,37 @@ const SUBJECTS = [
   { code: 'NET-DEMO', title: 'Data Communications and Networking', schedule: 'Tue/Thu 3:00 PM - 4:30 PM', room: 'Computer Lab 3' }
 ];
 
+// The school term that contains today (Philippine calendar, Asia/Manila):
+// 1st Semester Aug-Dec, 2nd Semester Jan-May, Midyear Term Jun-Jul.
+function currentTerm() {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: process.env.SCHOOL_TIMEZONE || 'Asia/Manila' }).format(new Date());
+  const [y, m] = today.split('-').map(Number);
+  if (m >= 8) return { name: `1st Semester, AY ${y}-${y + 1}`, startDate: `${y}-08-01`, endDate: `${y}-12-20`, today };
+  if (m <= 5) return { name: `2nd Semester, AY ${y - 1}-${y}`, startDate: `${y}-01-05`, endDate: `${y}-05-31`, today };
+  return { name: `Midyear Term, AY ${y - 1}-${y}`, startDate: `${y}-06-01`, endDate: `${y}-07-31`, today };
+}
+
+async function ensureActiveTerm() {
+  const wanted = currentTerm();
+  const active = await Term.findOne({ isActive: true });
+  if (active) {
+    const coversToday = active.startDate <= wanted.today && wanted.today <= active.endDate;
+    console.log(`  = active term already set: ${active.name} (${active.startDate} to ${active.endDate})`);
+    if (!coversToday) console.log('    ! today is outside this term; fix its dates in Academic Terms or reports will skip today');
+    return active;
+  }
+  let term = await Term.findOne({ name: wanted.name });
+  if (term) {
+    term.isActive = true;
+    await term.save();
+    console.log(`  = term ${term.name} set as active`);
+  } else {
+    term = await Term.create({ name: wanted.name, startDate: wanted.startDate, endDate: wanted.endDate, isActive: true });
+    console.log(`  + created active term ${term.name} (${term.startDate} to ${term.endDate})`);
+  }
+  return term;
+}
+
 async function upsertUser(data) {
   // Match on the login ID first, then on the email (avoids duplicate-email errors)
   let user = await User.findOne({ userCustomId: data.userCustomId });
@@ -66,6 +98,7 @@ async function upsertUser(data) {
   user.userCustomId = data.userCustomId;
   user.role = data.role;
   user.isActive = true;
+  user.approvalStatus = 'APPROVED'; // demo accounts never wait for approval
   if (RESET_PASSWORDS) {
     user.password = PASSWORD; // re-hashed by the User model's pre-save hook
     user.mustChangePassword = false;
@@ -79,6 +112,10 @@ async function main() {
   if (!process.env.MONGO_URI) throw new Error('MONGO_URI is missing from server/.env');
   await mongoose.connect(process.env.MONGO_URI);
   console.log('Connected. Seeding demo data...\n');
+
+  // 0. Academic term (the sidebar shows it; reports filter by its dates)
+  await ensureActiveTerm();
+  console.log('');
 
   // 1. Accounts
   const users = {};

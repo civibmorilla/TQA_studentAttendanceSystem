@@ -72,6 +72,7 @@ Our team finalized high-fidelity interface prototypes for all three user roles: 
    * Dynamic attendance dashboard with overall percentage tracking.
    * Low-attendance target warnings (<80%).
    * Privacy-toggled user profiles masking sensitive contact information.
+   * Editable profiles for every role: profile picture (cropped and resized in the browser), email, contact number and address, from the profile page or the sidebar.
    * Enrolled subjects overview with schedule and room assignments.
 
 2. **Instructor Portal:**
@@ -92,6 +93,9 @@ Our team finalized high-fidelity interface prototypes for all three user roles: 
    * **Subjects & Classes** page to create, edit and delete subjects and assign instructors, sections, schedules and rooms.
    * **Academic Terms** (semesters); the current term shows in everyone's sidebar.
    * **Import Students** from a CSV file, with optional enrollment and one-time temporary passwords.
+   * **Approve or reject account requests**: students can't create accounts on their own. The sign-up page only sends a request (or, with `SIGNUP_MODE=off`, explains that the registrar creates accounts); the admin approves it in Accounts and enrolls the student.
+   * **Official student numbers only**: student IDs must match the school format `YYYY-NNNNN` (e.g. 2026-00123) on sign-up, Create New User and CSV import. Set `STUDENT_ID_PATTERN` in `.env` for another format. Existing accounts are not affected.
+   * **Enroll a student directly** from Accounts (🎓 Enroll / Change class): pick a section and its subjects, no enrollment key needed.
    * **Reset a user's password** (temporary password, forced change at next login).
    * **Handle "Forgot password" requests**: users send a request from the login page; it appears on the Dashboard and at the top of Accounts, where the admin resets or dismisses it.
    * **Reports** for all classes, **QR ID cards** per section, and an **Audit Log** of who changed what.
@@ -158,7 +162,7 @@ Set `VITE_API_BASE_URL` in `client/.env.local` if the API is not at `http://loca
 
 **Demo accounts** (after `npm run seed`, password `password123`): `ADMIN-01`, `INST-01`, and students `STU-001` to `STU-010`. Type the ID as the username and pick the matching role tab.
 
-The seed also creates class **DEMO-301** with 4 subjects, all taught by `INST-01`, and enrolls all 10 students in every subject: `TQA-DEMO` (Test and Quality Assurance), `WEB-DEMO` (Web Systems and Technologies), `DBMS-DEMO` (Database Management Systems) and `NET-DEMO` (Data Communications and Networking). Run `npm run seed -- --reset-passwords` if an existing demo account can't log in.
+The seed also creates the **active academic term** for today's date (e.g. 1st Semester, AY 2026-2027) and class **DEMO-301** with 4 subjects, all taught by `INST-01`, and enrolls all 10 students in every subject: `TQA-DEMO` (Test and Quality Assurance), `WEB-DEMO` (Web Systems and Technologies), `DBMS-DEMO` (Database Management Systems) and `NET-DEMO` (Data Communications and Networking). Run `npm run seed -- --reset-passwords` if an existing demo account can't log in.
 
 **First-time setup without the seed:** register the first **Admin** from the sign-up page (only allowed while no admin exists). Then, as that admin, create a term → instructors → programs → **Subjects & Classes** → import students or issue enrollment keys.
 
@@ -208,8 +212,14 @@ Also new: `PUT` / `DELETE /api/v1/academic/subjects/:id` (Admin).
 | GET | `/excuses/mine` | Student | Own excuse letters |
 | GET | `/excuses/review?status=` | Instructor/Admin | Letters for own classes |
 | PATCH | `/excuses/:id` | Instructor/Admin | `{ status: APPROVED or REJECTED, note }` |
+| GET | `/auth/me` | Any | Own profile (unmasked), including the profile picture |
+| PUT | `/auth/me` | Any | Update own `email`, `contactNo`, `address`, `photo` (JPG/PNG/WebP data URL under 250 KB; `''` removes it) |
 | PUT | `/auth/me/password` | Any | Change own password |
 | PUT | `/auth/users/:id/password` | Admin | Reset to a temporary password (also closes that user's reset requests) |
+| GET | `/auth/signup-mode` | Public | `{ mode: 'approval' \| 'off', needsFirstAdmin, studentIdExample }` for the sign-up page |
+| GET | `/auth/account-requests` | Admin | Student sign-ups waiting for approval |
+| PATCH | `/auth/account-requests/:id/approve` | Admin | Let the student log in |
+| PATCH | `/auth/account-requests/:id/reject` | Admin | Keep the account blocked (record kept) |
 | POST | `/auth/forgot-password` | Public | Request a reset `{ username, email, note? }`; same reply whether or not the account exists; 5 per hour per network |
 | GET | `/auth/reset-requests?status=` | Admin | Pending (default), RESOLVED, DISMISSED or ALL requests |
 | PATCH | `/auth/reset-requests/:id/dismiss` | Admin | Close a request without resetting |

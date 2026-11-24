@@ -9,6 +9,7 @@ const AuditLog = require('../models/AuditLog');
 const { logAudit } = require('../utils/audit');
 const PasswordResetRequest = require('../models/PasswordResetRequest');
 const { resolveRequestsFor } = require('./passwordResetController');
+const { isValidStudentId, studentIdError, signupMode } = require('../utils/studentId');
 
 const generateToken = (id, role) => {
   // SECURITY: sessions last 1 day by default (was 30 days). Override with JWT_EXPIRES_IN.
@@ -18,14 +19,27 @@ const generateToken = (id, role) => {
 // @desc    Register a new user (Student, Instructor, or Admin)
 exports.registerUser = async (req, res) => {
   try {
-    const { userCustomId, fullName, email, password, contactNo, address, enrollmentKey } = req.body;
+    const { contactNo, address, enrollmentKey } = req.body;
+    const userCustomId = String(req.body.userCustomId || '').trim();
+    const fullName = String(req.body.fullName || '').trim();
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = req.body.password;
     let role = req.body.role || 'STUDENT';
+    const isAdminCaller = Boolean(req.user && req.user.role === 'ADMIN');
+
+    // Students can't create their own accounts any more: either sign-up is off
+    // (accounts come from the registrar's roster) or it only sends a request.
+    if (role === 'STUDENT' && !isAdminCaller && signupMode() === 'off') {
+      return res.status(403).json({
+        success: false,
+        message: 'Sign-up is closed. Your account is created by the school administrator; ask them for your login.'
+      });
+    }
 
     // SECURITY FIX: the public sign-up form used to let anyone create an ADMIN.
     // Staff accounts (INSTRUCTOR / ADMIN) can now only be created by a logged-in admin,
     // except for the very first ADMIN (bootstrap of an empty database).
     if (role !== 'STUDENT') {
-      const isAdminCaller = req.user && req.user.role === 'ADMIN';
       const isBootstrap = role === 'ADMIN' && (await User.countDocuments({ role: 'ADMIN' })) === 0;
       if (!isAdminCaller && !isBootstrap) {
         return res.status(403).json({ success: false, message: 'Only an administrator can create instructor or admin accounts.' });
@@ -35,8 +49,12 @@ exports.registerUser = async (req, res) => {
     if (!userCustomId || !fullName || !email || !password) {
       return res.status(400).json({ success: false, message: 'ID, full name, email and password are required.' });
     }
-    if (String(password).length < 6) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+    if (String(password).length < 8) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters.' });
+    }
+    // Official student numbers only (e.g. 2026-00123)
+    if (role === 'STUDENT' && !isValidStudentId(userCustomId)) {
+      return res.status(400).json({ success: false, message: studentIdError() });
     }
 
     // RA 10173: people signing themselves up must accept the privacy notice
@@ -47,8 +65,10 @@ exports.registerUser = async (req, res) => {
 
     const userExists = await User.findOne({ $or: [{ email }, { userCustomId }] });
     if (userExists) {
-      return res.status(400).json({ success: false, message: 'User already exists in the system' });
+      return res.status(400).json({ success: false, message: 'That student number or email is already registered. If it is yours, use "Forgot password?" on the login page.' });
     }
+    // A student signing themselves up only sends a request; an admin must approve it
+    const needsApproval = role === 'STUDENT' && !isAdminCreating;
 
     let enrollmentData = { isEnrolled: false };
 
@@ -82,6 +102,9 @@ exports.registerUser = async (req, res) => {
       contactNo,
       address,
       privacyConsentAt: isAdminCreating ? null : new Date(),
+      approvalStatus: needsApproval ? 'PENDING' : 'APPROVED',
+      // An admin picked this password, so the person chooses their own at first login
+      mustChangePassword: isAdminCreating,
       ...enrollmentData
     });
     if (isAdminCreating) {
@@ -97,6 +120,15 @@ exports.registerUser = async (req, res) => {
           $push: { usedBy: { student: user._id, usedAt: new Date() } }
         }
       );
+    }
+
+    if (needsApproval) {
+      logAudit(req, 'user.request', { entity: 'User', entityId: user._id, summary: `Account request from ${userCustomId} (${fullName})` });
+      return res.status(201).json({
+        success: true,
+        pending: true,
+        message: 'Request sent. You can log in after the school administrator approves your account.'
+      });
     }
 
     if (user) {
@@ -123,6 +155,12 @@ exports.loginUser = async (req, res) => {
     if (user && (await bcrypt.compare(password, user.password))) {
       if (user.isActive === false) {
         return res.status(403).json({ success: false, message: 'This account has been deactivated. Please contact an administrator.' });
+      }
+      if (user.approvalStatus === 'PENDING') {
+        return res.status(403).json({ success: false, message: 'Your account is waiting for approval by the school administrator.' });
+      }
+      if (user.approvalStatus === 'REJECTED') {
+        return res.status(403).json({ success: false, message: 'Your account request was not approved. Please contact the school administrator.' });
       }
 
       res.json({
@@ -169,7 +207,7 @@ exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find()
       .populate('program', 'code name')
-      .select('-password');
+      .select('-password -photo'); // photos are large; the list doesn't need them
     res.status(200).json({ success: true, count: users.length, data: users });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -186,7 +224,13 @@ exports.updateUser = async (req, res) => {
     }
     
     // Fields that must never be set through this route
-    ['password', 'privacyConsentAt', 'mustChangePassword'].forEach((f) => delete req.body[f]);
+    ['password', 'privacyConsentAt', 'mustChangePassword', 'approvalStatus', 'photo'].forEach((f) => delete req.body[f]);
+    if (req.body.userCustomId !== undefined) {
+      const target = await User.findById(req.params.id).select('role');
+      if (target && target.role === 'STUDENT' && !isValidStudentId(req.body.userCustomId)) {
+        return res.status(400).json({ success: false, message: studentIdError() });
+      }
+    }
     if (String(req.params.id) === String(req.user._id) && (req.body.role || req.body.isActive === false)) {
       return res.status(400).json({ success: false, message: 'You cannot change your own role or deactivate yourself.' });
     }
@@ -232,6 +276,7 @@ exports.getDashboardStats = async (req, res) => {
     const instructorsCount = await User.countDocuments({ role: 'INSTRUCTOR' });
     const classesCount = await Subject.countDocuments();
     const pendingResetRequests = await PasswordResetRequest.countDocuments({ status: 'PENDING' });
+    const pendingAccountRequests = await User.countDocuments({ approvalStatus: 'PENDING' });
 
     // Get recent instructors (last 5)
     const recentInstructors = await User.find({ role: 'INSTRUCTOR' })
@@ -253,6 +298,7 @@ exports.getDashboardStats = async (req, res) => {
         instructors: instructorsCount,
         classes: classesCount,
         pendingResetRequests,
+        pendingAccountRequests,
       },
       recentInstructors,
       recentClasses,
@@ -347,6 +393,10 @@ exports.bulkImportStudents = async (req, res) => {
       const email = String(row.email || '').trim().toLowerCase();
       if (!userCustomId || !fullName || !email) {
         results.push({ row: i + 2, userCustomId, status: 'SKIPPED', reason: 'Missing ID, name or email' });
+        continue;
+      }
+      if (!isValidStudentId(userCustomId)) {
+        results.push({ row: i + 2, userCustomId, status: 'SKIPPED', reason: studentIdError() });
         continue;
       }
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {

@@ -21,7 +21,7 @@ API.interceptors.response.use(
     const url = error.config?.url || '';
     const isAuthCall = url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/me/password');
     if (!isAuthCall && (status === 401 || (status === 403 && /deactivated/i.test(error.response?.data?.message || '')))) {
-      ['token', 'userName', 'userRole', 'mustChangePassword'].forEach((k) => localStorage.removeItem(k));
+      ['token', 'userName', 'userRole', 'mustChangePassword', 'userPhoto'].forEach((k) => localStorage.removeItem(k));
       if (!window.location.pathname.startsWith('/login')) {
         window.location.assign('/login?expired=1');
       }

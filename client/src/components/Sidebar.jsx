@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import API from '../services/api';
 import ChangePasswordModal from './ChangePasswordModal';
+import EditProfileModal from './EditProfileModal';
+import Avatar from './Avatar';
 
 const MENU = {
   STUDENT: [
@@ -38,18 +40,32 @@ export default function Sidebar({ activeRole = 'STUDENT', mobileOpen = false, on
   const navigate = useNavigate();
   const location = useLocation();
   const userName = localStorage.getItem('userName') || 'User';
-  const initials = userName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
   const [term, setTerm] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [photo, setPhoto] = useState(() => {
+    try { return localStorage.getItem('userPhoto') || ''; } catch { return ''; }
+  });
 
   useEffect(() => {
     API.get('/terms').then((res) => setTerm(res.data.active)).catch(() => {});
+    // Load the current picture (cached in localStorage so it shows instantly next time)
+    API.get('/auth/me')
+      .then((res) => {
+        const p = res.data.data?.photo || '';
+        setPhoto(p);
+        try { if (p) localStorage.setItem('userPhoto', p); else localStorage.removeItem('userPhoto'); } catch { /* ignore */ }
+      })
+      .catch(() => {});
+    const onUpdate = (e) => setPhoto(e.detail?.photo || '');
+    window.addEventListener('profile-updated', onUpdate);
+    return () => window.removeEventListener('profile-updated', onUpdate);
   }, []);
 
   const navItems = MENU[activeRole] || MENU.STUDENT;
 
   const handleLogout = () => {
-    ['token', 'userName', 'userRole', 'mustChangePassword'].forEach((k) => localStorage.removeItem(k));
+    ['token', 'userName', 'userRole', 'mustChangePassword', 'userPhoto'].forEach((k) => localStorage.removeItem(k));
     navigate('/login');
   };
 
@@ -61,11 +77,7 @@ export default function Sidebar({ activeRole = 'STUDENT', mobileOpen = false, on
       <div>
         {/* Brand */}
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-md shadow-blue-500/20" aria-hidden="true">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-1-13h2v6h-2zm0 8h2v2h-2z" />
-            </svg>
-          </div>
+          <img src="/logo-icon.png" alt="" width="40" height="40" className="w-10 h-10 rounded-xl shadow-md shadow-blue-900/20" />
           <div>
             <p className="font-black text-slate-800 text-base leading-tight tracking-tight uppercase">ClassPulse</p>
             <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">by XI Labs</p>
@@ -98,15 +110,17 @@ export default function Sidebar({ activeRole = 'STUDENT', mobileOpen = false, on
       </div>
 
       <div className="mt-6">
-        <div className="pt-4 border-t border-slate-200 flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center" aria-hidden="true">
-            {initials}
-          </div>
+        <button
+          onClick={() => setShowProfile(true)}
+          className="w-full pt-4 border-t border-slate-200 flex items-center gap-3 mb-2 text-left rounded-xl hover:bg-slate-50 transition"
+          title="Edit your profile picture and contact details"
+        >
+          <Avatar name={userName} photo={photo} />
           <div className="overflow-hidden">
             <p className="text-sm font-bold text-slate-800 truncate">{userName}</p>
-            <span className="text-xs text-slate-500 capitalize block">{activeRole.toLowerCase()} account</span>
+            <span className="text-xs text-slate-500 block"><span className="capitalize">{activeRole.toLowerCase()}</span> · <span className="text-blue-600 font-semibold">Edit profile</span></span>
           </div>
-        </div>
+        </button>
         <button
           onClick={() => setShowPassword(true)}
           className="w-full flex items-center gap-2 px-4 py-2.5 min-h-11 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
@@ -122,6 +136,7 @@ export default function Sidebar({ activeRole = 'STUDENT', mobileOpen = false, on
       </div>
 
       {showPassword && <ChangePasswordModal onClose={() => setShowPassword(false)} />}
+      {showProfile && <EditProfileModal onClose={() => setShowProfile(false)} />}
     </aside>
   );
 }

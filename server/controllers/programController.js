@@ -285,7 +285,8 @@ exports.getMyEnrolledSubjects = async (req, res) => {
 // @access  Private (Admin only)
 exports.assignStudentDirectly = async (req, res) => {
   try {
-    const { studentId, programId, yearLevel, section, subjects } = req.body;
+    const { studentId, programId, yearLevel, section } = req.body;
+    const subjectIds = Array.isArray(req.body.subjects) ? req.body.subjects.map(String) : [];
 
     const student = await User.findById(studentId);
     if (!student || student.role !== 'STUDENT') {
@@ -297,18 +298,30 @@ exports.assignStudentDirectly = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Academic program not found' });
     }
 
+    // Only real subjects can be assigned (ignores stale or made-up ids)
+    const subjects = subjectIds.length ? await Subject.find({ _id: { $in: subjectIds } }).select('_id code') : [];
+    if (subjectIds.length && subjects.length !== subjectIds.length) {
+      return res.status(400).json({ success: false, message: 'One or more selected subjects no longer exist. Refresh and try again.' });
+    }
+
     student.program = programId;
     student.yearLevel = yearLevel || '1st Year';
     student.section = section || `${program.code}-101`;
-    student.enrolledSubjects = subjects || [];
+    student.enrolledSubjects = subjects.map((s) => s._id);
     student.isEnrolled = true;
     student.enrollmentKey = 'ADMIN-ASSIGNED';
     await student.save();
 
+    logAudit(req, 'student.enroll', {
+      entity: 'User',
+      entityId: student._id,
+      summary: `Enrolled ${student.userCustomId} in ${student.section}: ${subjects.map((s) => s.code).join(', ') || 'no subjects'}`
+    });
+
     res.status(200).json({
       success: true,
-      message: `Student "${student.fullName}" enrolled into ${program.code} (${student.section}) directly.`,
-      data: student
+      message: `${student.fullName} is now enrolled in ${student.section} (${subjects.length} subject${subjects.length === 1 ? '' : 's'}).`,
+      data: { _id: student._id, section: student.section, isEnrolled: true, enrolledSubjects: student.enrolledSubjects }
     });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });

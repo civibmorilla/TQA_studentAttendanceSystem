@@ -27,6 +27,7 @@ export default function Login() {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('userName', response.data.name);
         localStorage.setItem('userRole', response.data.role);
+        localStorage.removeItem('userPhoto'); // the sidebar loads this user's picture
         if (response.data.mustChangePassword) localStorage.setItem('mustChangePassword', '1');
         else localStorage.removeItem('mustChangePassword');
 
@@ -46,14 +47,9 @@ export default function Login() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8 border border-slate-100">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/25 mx-auto mb-3">
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-            </svg>
-          </div>
-          <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase">CLASSPULSE</h2>
-          <p className="text-sm font-semibold text-slate-500 italic mt-0.5">Student Attendance Management & Tracking System</p>
-          <p className="text-xs font-bold text-blue-600 mt-1 uppercase tracking-wider">by XI Labs</p>
+          <h1 className="sr-only">ClassPulse: Student Attendance System</h1>
+          <img src="/logo-full.png" alt="ClassPulse, Student Attendance System" width="640" height="428" className="w-64 h-auto mx-auto" />
+          <p className="text-xs font-bold text-blue-600 mt-2 uppercase tracking-wider">by XI Labs</p>
         </div>
 
         {sessionExpired && (
@@ -125,7 +121,7 @@ export default function Login() {
         </form>
 
         <p className="text-center text-sm text-slate-500 mt-6">
-          Don't have an account? <Link to="/register" className="text-blue-600 font-semibold hover:underline">Create one</Link>
+          No account yet? <Link to="/register" className="text-blue-600 font-semibold hover:underline">Request one</Link>
         </p>
       </div>
     </div>

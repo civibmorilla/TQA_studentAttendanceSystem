@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
+import Avatar from '../components/Avatar';
+import EditProfileModal from '../components/EditProfileModal';
 
 export default function InstructorProfile() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showSensitive, setShowSensitive] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   const fetchProfile = async (unmask = false) => {
     try {
@@ -48,7 +51,6 @@ export default function InstructorProfile() {
     );
   }
 
-  const initials = profile.fullName ? profile.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '??';
 
   return (
     <div className="p-8 bg-slate-50 min-h-screen">
@@ -61,11 +63,9 @@ export default function InstructorProfile() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between mb-6">
+      <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-wrap gap-4 items-center justify-between mb-6">
         <div className="flex items-center gap-5">
-          <div className="w-20 h-20 bg-blue-50 border border-blue-100 rounded-full flex items-center justify-center text-blue-600 text-2xl font-bold">
-            {initials}
-          </div>
+          <Avatar name={profile.fullName} photo={profile.photo} size="lg" tone="soft" />
           <div>
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-bold text-slate-800">{profile.fullName}</h2>
@@ -74,9 +74,15 @@ export default function InstructorProfile() {
             <p className="text-sm text-slate-400 mt-1">Instructor ID: <strong className="text-slate-600">{profile.userCustomId}</strong> • Email: <strong className="text-slate-600">{profile.email}</strong></p>
           </div>
         </div>
+        <button
+          onClick={() => setEditing(true)}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold shadow-sm transition shrink-0"
+        >
+          ✏️ Edit profile
+        </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
             <h3 className="text-sm font-bold text-slate-800">Personal Information</h3>
@@ -103,6 +109,8 @@ export default function InstructorProfile() {
           </div>
         </div>
       </div>
+
+      {editing && <EditProfileModal onClose={() => setEditing(false)} onSaved={() => fetchProfile(showSensitive)} />}
     </div>
   );
 }

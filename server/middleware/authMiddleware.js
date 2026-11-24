@@ -19,6 +19,10 @@ exports.protect = async (req, res, next) => {
     if (user.isActive === false) {
       return res.status(403).json({ success: false, message: 'This account has been deactivated' });
     }
+    // Sign-up requests can't use the app until an admin approves them
+    if (user.approvalStatus && user.approvalStatus !== 'APPROVED') {
+      return res.status(403).json({ success: false, message: 'This account has been deactivated: waiting for administrator approval' });
+    }
 
     req.user = user;
     next();

@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import API from '../services/api';
 import { useToast } from '../components/Toast';
+import EnrollStudentModal from '../components/EnrollStudentModal';
 
 export default function AdminAccounts() {
   const toast = useToast();
   const [resetResult, setResetResult] = useState(null);
+  const [enrollTarget, setEnrollTarget] = useState(null); // student being enrolled
   const [searchParams, setSearchParams] = useSearchParams();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +32,44 @@ export default function AdminAccounts() {
 
   // "Forgot password" requests sent from the login page
   const [resetRequests, setResetRequests] = useState([]);
+  // Students who asked for an account on the sign-up page
+  const [accountRequests, setAccountRequests] = useState([]);
+
+  const fetchAccountRequests = async () => {
+    try {
+      const res = await API.get('/auth/account-requests');
+      if (res.data.success) setAccountRequests(res.data.data);
+    } catch (err) {
+      console.error('Failed to load account requests:', err);
+    }
+  };
+
+  const handleApproveAccount = async (u) => {
+    try {
+      const res = await API.patch(`/auth/account-requests/${u._id}/approve`);
+      toast.success(res.data.message);
+      fetchAccountRequests();
+      fetchUsers();
+      // Next step: put the new student in a class
+      if (!res.data.data.isEnrolled) setEnrollTarget(res.data.data);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to approve the account.');
+    }
+  };
+
+  const handleRejectAccount = async (u) => {
+    if (!window.confirm(`Reject the account request from ${u.fullName} (${u.userCustomId})? They won't be able to log in. The record is kept so you can review it later.`)) {
+      return;
+    }
+    try {
+      const res = await API.patch(`/auth/account-requests/${u._id}/reject`);
+      toast.success(res.data.message);
+      fetchAccountRequests();
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to reject the request.');
+    }
+  };
 
   const fetchResetRequests = async () => {
     try {
@@ -69,6 +109,7 @@ export default function AdminAccounts() {
   useEffect(() => {
     fetchUsers();
     fetchResetRequests();
+    fetchAccountRequests();
 
     // Check if query params ask to create an account
     const createRole = searchParams.get('create');
@@ -212,6 +253,41 @@ export default function AdminAccounts() {
         </div>
       )}
 
+      {/* Account requests from the public sign-up page */}
+      {accountRequests.length > 0 && (
+        <section aria-labelledby="ar-title" className="mb-6 bg-blue-50 border border-blue-200 rounded-2xl p-6">
+          <h3 id="ar-title" className="text-lg font-bold text-blue-900">
+            🙋 Account requests ({accountRequests.length})
+          </h3>
+          <p className="text-sm text-blue-900/80 mt-1 mb-4">
+            Approve only students whose student number and name match the official roster. Approved students can log in; you can then enroll them in a class.
+          </p>
+          <ul className="space-y-3">
+            {accountRequests.map((u) => (
+              <li key={u._id} className="bg-white rounded-xl border border-blue-100 p-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-bold text-slate-800">
+                    {u.fullName} <span className="font-mono text-sm text-slate-500">({u.userCustomId})</span>
+                  </p>
+                  <p className="text-sm text-slate-500">
+                    {u.email} · requested {new Date(u.createdAt).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}
+                    {u.isEnrolled && u.section && <span> · used an enrollment key for {u.section}</span>}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => handleApproveAccount(u)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold transition">
+                    Approve
+                  </button>
+                  <button onClick={() => handleRejectAccount(u)} className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-bold transition">
+                    Reject
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Password reset requests from the "Forgot password?" page */}
       {resetRequests.length > 0 && (
         <section aria-labelledby="rr-title" className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-6">
@@ -341,7 +417,7 @@ export default function AdminAccounts() {
                             </span>
                           ) : (
                             <span className="px-2 py-0.5 rounded text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                              ⚠️ Pending Key
+                              ⚠️ Not enrolled
                             </span>
                           )
                         ) : (
@@ -349,7 +425,15 @@ export default function AdminAccounts() {
                         )}
                       </td>
                       <td className="py-4 px-4">
-                        {isActive ? (
+                        {user.approvalStatus === 'PENDING' ? (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                            ⏳ Awaiting approval
+                          </span>
+                        ) : user.approvalStatus === 'REJECTED' ? (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                            ✕ Request rejected
+                          </span>
+                        ) : isActive ? (
                           <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                             ● Active
                           </span>
@@ -360,14 +444,18 @@ export default function AdminAccounts() {
                         )}
                       </td>
                       <td className="py-4 px-4 text-right space-x-2">
-                        {user.role === 'STUDENT' && !user.isEnrolled && (
-                          <a
-                            href="/admin/enrollment-keys"
-                            className="px-2.5 py-1.5 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition shadow-sm font-semibold inline-block text-sm"
-                            title="Issue Enrollment Key for this student"
+                        {user.role === 'STUDENT' && (
+                          <button
+                            onClick={() => setEnrollTarget(user)}
+                            className={`px-2.5 py-1.5 rounded-lg transition shadow-sm font-semibold inline-block text-sm ${
+                              user.isEnrolled
+                                ? 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                            }`}
+                            title={user.isEnrolled ? 'Move this student to another class or change subjects' : 'Enroll this student in a class without a key'}
                           >
-                            🔑 Issue Key
-                          </a>
+                            {user.isEnrolled ? '🎓 Change class' : '🎓 Enroll'}
+                          </button>
                         )}
                         {/* Deactivate / Reactivate Button */}
                         {isActive ? (
@@ -461,12 +549,17 @@ export default function AdminAccounts() {
                 <input
                   type="text"
                   name="userCustomId"
-                  placeholder={formData.role === 'STUDENT' ? 'e.g. BSCpE-2026-001' : 'e.g. INST-101'}
+                  placeholder={formData.role === 'STUDENT' ? 'e.g. 2026-00123' : 'e.g. INST-101'}
                   value={formData.userCustomId}
                   onChange={handleInputChange}
                   required
+                  pattern={formData.role === 'STUDENT' ? '\\d{4}-\\d{5}' : undefined}
+                  title={formData.role === 'STUDENT' ? 'Official student number: year, dash, 5 digits (e.g. 2026-00123)' : undefined}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
+                {formData.role === 'STUDENT' && (
+                  <p className="text-xs text-slate-500 mt-1">Use the official student number from the registrar: YYYY-NNNNN.</p>
+                )}
               </div>
 
               <div>
@@ -500,10 +593,11 @@ export default function AdminAccounts() {
                 <input
                   type="password"
                   name="password"
-                  placeholder="Minimum 6 characters"
+                  placeholder="Minimum 8 characters"
                   value={formData.password}
                   onChange={handleInputChange}
                   required
+                  minLength={8}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
@@ -556,6 +650,14 @@ export default function AdminAccounts() {
           </div>
         </div>
       )}
+      {enrollTarget && (
+        <EnrollStudentModal
+          student={enrollTarget}
+          onClose={() => setEnrollTarget(null)}
+          onDone={() => { setEnrollTarget(null); fetchUsers(); }}
+        />
+      )}
+
       {resetResult && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4" role="dialog" aria-labelledby="rp-title">

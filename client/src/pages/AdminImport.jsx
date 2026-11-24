@@ -95,7 +95,7 @@ export default function AdminImport() {
 
   const downloadTemplate = () => downloadCsv('students_template.csv', [
     ['Student ID', 'Full Name', 'Email', 'Password', 'Contact'],
-    ['2026-0001', 'Juan Dela Cruz', 'juan@example.edu.ph', '', '0917-000-0000']
+    ['2026-00001', 'Juan Dela Cruz', 'juan@example.edu.ph', '', '0917-000-0000']
   ]);
 
   const downloadPasswords = () => downloadCsv('imported_students_passwords.csv', [
@@ -114,7 +114,7 @@ export default function AdminImport() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <h2 className="text-base font-bold text-slate-800">1. Choose the file</h2>
-          <p className="text-sm text-slate-600">Columns: <strong>Student ID, Full Name, Email</strong>; optional <strong>Password</strong> (8+ characters) and <strong>Contact</strong>. Students without a password get a temporary one and must change it at first login.</p>
+          <p className="text-sm text-slate-600">Columns: <strong>Student ID</strong> (official format <strong>YYYY-NNNNN</strong>, e.g. 2026-00123), <strong>Full Name, Email</strong>; optional <strong>Password</strong> (8+ characters) and <strong>Contact</strong>. Students without a password get a temporary one and must change it at first login.</p>
           <button onClick={downloadTemplate} className="px-4 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50">⬇ Download template</button>
           <label className="block">
             <span className="sr-only">CSV file</span>

@@ -114,6 +114,16 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {stats.pendingAccountRequests > 0 && (
+        <button
+          onClick={() => navigate('/admin/accounts')}
+          className="w-full mb-3 p-4 bg-blue-50 border border-blue-200 text-blue-900 text-sm font-bold rounded-xl flex items-center justify-between hover:bg-blue-100 transition text-left"
+        >
+          <span>🙋 {stats.pendingAccountRequests} account {stats.pendingAccountRequests === 1 ? 'request is' : 'requests are'} waiting for approval</span>
+          <span className="text-blue-700">Review in Accounts →</span>
+        </button>
+      )}
+
       {stats.pendingResetRequests > 0 && (
         <button
           onClick={() => navigate('/admin/accounts')}

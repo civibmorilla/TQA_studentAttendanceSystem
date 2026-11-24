@@ -13,8 +13,13 @@ const UserSchema = new mongoose.Schema({
     required: true 
   },
   isActive: { type: Boolean, default: true },
+  // Self sign-ups wait for an admin: PENDING -> APPROVED or REJECTED.
+  // Accounts made by an admin, the import or the seed are APPROVED (also the default for old accounts).
+  approvalStatus: { type: String, enum: ['APPROVED', 'PENDING', 'REJECTED'], default: 'APPROVED' },
   contactNo: { type: String, default: '0917-000-0000' },
   address: { type: String, default: 'Bataan, Philippines' },
+  // Profile picture as a small data URL (resized in the browser to 256x256 before upload)
+  photo: { type: String, default: '' },
   // Academic Enrollment Configuration (assigned via Admin / Enrollment Key)
   program: { type: mongoose.Schema.Types.ObjectId, ref: 'Program', default: null },
   yearLevel: { type: String, default: null },
